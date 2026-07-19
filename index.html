@@ -24,12 +24,12 @@
         * { -webkit-tap-highlight-color: transparent; }
         body { font-family: 'Inter', 'Segoe UI', sans-serif; }
         
-        /* Animasi View & Toast */
-        .view-section { display: none; animation: fadeIn 0.4s ease; }
-        .view-section.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* === BASIC ANIMATIONS === */
+        .view-section { display: none; }
+        .view-section.active { display: block; animation: fadeIn 0.4s ease forwards; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
-        .toast { transform: translateX(100%); transition: transform 0.3s ease-out; }
+        .toast { transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         .toast.show { transform: translateX(0); }
         
         /* Scrollbar Styling */
@@ -37,6 +37,49 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .dark ::-webkit-scrollbar-thumb { background: #475569; }
+
+        /* ==========================================
+           MOTION GRAPHICS & ADVANCED ANIMATIONS
+           ========================================== */
+           
+        /* 1. Slide Up Berurutan (Stagger) */
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .motion-slide-up {
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0; /* Mulai dari tidak terlihat */
+        }
+        .delay-100 { animation-delay: 100ms; }
+        .delay-200 { animation-delay: 200ms; }
+        .delay-300 { animation-delay: 300ms; }
+        .delay-400 { animation-delay: 400ms; }
+
+        /* 2. Efek Melayang (Floating) untuk Ikon */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-12px); }
+            100% { transform: translateY(0px); }
+        }
+        .motion-float { animation: float 3.5s ease-in-out infinite; }
+
+        /* 3. Efek Blob Bergerak untuk Background Kartu Utama */
+        @keyframes blobBounce {
+            0% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(20px, -30px) scale(1.2); }
+            66% { transform: translate(-20px, 15px) scale(0.9); }
+            100% { transform: translate(0, 0) scale(1); }
+        }
+        .motion-blob { animation: blobBounce 8s infinite ease-in-out; }
+
+        /* 4. Efek Tombol Ditekan (Micro-interaction) */
+        .btn-press { transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1); }
+        .btn-press:active { transform: scale(0.94); }
+        
+        /* 5. Kartu Membesar saat di-Hover */
+        .card-hover { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease; }
+        .card-hover:hover { transform: translateY(-4px); }
     </style>
 
     <script>
@@ -52,21 +95,24 @@
     <div id="toast-container" class="fixed top-5 right-5 z-[300] flex flex-col gap-3"></div>
 
     <div id="view-login" class="flex-1 flex flex-col justify-center items-center absolute inset-0 z-[200] bg-gray-50 dark:bg-gray-900 transition-colors">
-        <div class="bg-white dark:bg-gray-800 p-8 md:p-10 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 w-full max-w-sm text-center mx-4">
-            <div class="bg-primary text-white w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-3xl mx-auto mb-6 shadow-lg shadow-indigo-200 dark:shadow-none">
+        <div class="bg-white dark:bg-gray-800 p-8 md:p-10 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 w-full max-w-sm text-center mx-4 motion-slide-up">
+            
+            <div class="motion-float bg-primary text-white w-20 h-20 rounded-3xl flex items-center justify-center font-bold text-4xl mx-auto mb-6 shadow-xl shadow-indigo-200 dark:shadow-none">
                 <i class="fas fa-lock"></i>
             </div>
+            
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Akses Terkunci</h2>
             <p class="text-sm text-gray-500 dark:text-gray-400 mb-8">Masukkan kode akses untuk membuka Member Area.</p>
             
             <input type="text" id="access-code-input" placeholder="KODE AKSES" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-center text-lg font-bold uppercase tracking-widest focus:ring-2 focus:ring-primary focus:outline-none dark:text-white mb-6 transition-all">
             
-            <button onclick="checkAccessCode()" class="w-full bg-primary text-white font-bold py-4 rounded-xl hover:bg-primaryDark transition-colors shadow-lg shadow-indigo-200 dark:shadow-none mb-4">
+            <button onclick="checkAccessCode()" class="btn-press w-full bg-primary text-white font-bold py-4 rounded-xl hover:bg-primaryDark transition-colors shadow-lg shadow-indigo-200 dark:shadow-none mb-4">
                 Buka Akses
             </button>
             <p class="text-xs text-gray-400">KeuanganPro &copy; 2026</p>
         </div>
-        <button onclick="toggleTheme()" class="absolute top-6 right-6 w-10 h-10 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 shadow-sm flex items-center justify-center">
+        
+        <button onclick="toggleTheme()" class="btn-press absolute top-6 right-6 w-10 h-10 rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 shadow-sm flex items-center justify-center">
             <i id="theme-icon-login" class="fas fa-moon"></i>
         </button>
     </div>
@@ -80,18 +126,18 @@
             </div>
             <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
                 <p class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-4 mt-2 px-3">Menu Utama</p>
-                <button onclick="switchView('dashboard')" class="nav-btn w-full flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all active-nav" data-target="dashboard">
+                <button onclick="switchView('dashboard')" class="btn-press nav-btn w-full flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all active-nav" data-target="dashboard">
                     <i class="fas fa-chart-pie w-5"></i> Dashboard
                 </button>
-                <button onclick="switchView('input')" class="nav-btn w-full flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all" data-target="input">
+                <button onclick="switchView('input')" class="btn-press nav-btn w-full flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all" data-target="input">
                     <i class="fas fa-plus-circle w-5"></i> Input Data
                 </button>
-                <button onclick="switchView('data')" class="nav-btn w-full flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all" data-target="data">
+                <button onclick="switchView('data')" class="btn-press nav-btn w-full flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all" data-target="data">
                     <i class="fas fa-list-alt w-5"></i> Riwayat Transaksi
                 </button>
                 
                 <p class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-4 mt-6 px-3">Pengaturan</p>
-                <button onclick="switchView('settings')" class="nav-btn w-full flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all" data-target="settings">
+                <button onclick="switchView('settings')" class="btn-press nav-btn w-full flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all" data-target="settings">
                     <i class="fas fa-cog w-5"></i> Kelola Sistem
                 </button>
             </nav>
@@ -103,7 +149,7 @@
                         <p class="text-[10px] text-gray-500">Premium Member</p>
                     </div>
                 </div>
-                <button onclick="logout()" class="text-gray-400 hover:text-red-500 p-2 transition-colors" title="Keluar">
+                <button onclick="logout()" class="btn-press text-gray-400 hover:text-red-500 p-2 transition-colors" title="Keluar">
                     <i class="fas fa-sign-out-alt"></i>
                 </button>
             </div>
@@ -114,41 +160,46 @@
             <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm px-6 py-4 flex justify-between items-center z-10 transition-colors">
                 <h2 id="header-title" class="text-xl font-bold text-gray-800 dark:text-white">Dashboard</h2>
                 <div class="flex items-center gap-4">
-                    <button onclick="toggleTheme()" class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center">
+                    <button onclick="toggleTheme()" class="btn-press w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center">
                         <i id="theme-icon" class="fas fa-moon"></i>
                     </button>
-                    <button onclick="logout()" class="md:hidden w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center justify-center">
+                    <button onclick="logout()" class="btn-press md:hidden w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center justify-center">
                         <i class="fas fa-sign-out-alt"></i>
                     </button>
                 </div>
             </header>
 
-            <main class="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8">
+            <main class="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8 relative">
                 
                 <div id="view-dashboard" class="view-section active max-w-5xl mx-auto">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col justify-center">
+                        
+                        <div class="card-hover motion-slide-up delay-100 bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col justify-center">
                             <div class="flex justify-between items-center mb-2">
                                 <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Pemasukan</p>
                                 <div class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600"><i class="fas fa-arrow-down"></i></div>
                             </div>
                             <p class="text-2xl font-black text-gray-900 dark:text-white" id="dash-income">Rp 0</p>
                         </div>
-                        <div class="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col justify-center">
+                        
+                        <div class="card-hover motion-slide-up delay-200 bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col justify-center">
                             <div class="flex justify-between items-center mb-2">
                                 <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Pengeluaran</p>
                                 <div class="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600"><i class="fas fa-arrow-up"></i></div>
                             </div>
                             <p class="text-2xl font-black text-gray-900 dark:text-white" id="dash-expense">Rp 0</p>
                         </div>
-                        <div class="bg-primary rounded-2xl p-5 shadow-lg shadow-indigo-200 dark:shadow-none flex flex-col justify-center text-white relative overflow-hidden">
-                            <div class="absolute -right-4 -top-4 w-24 h-24 bg-white opacity-10 rounded-full blur-xl"></div>
-                            <p class="text-xs font-bold text-indigo-100 uppercase tracking-wider mb-2">Sisa Keuangan (Saldo)</p>
-                            <p class="text-3xl font-black" id="dash-balance">Rp 0</p>
+                        
+                        <div class="card-hover motion-slide-up delay-300 bg-primary rounded-2xl p-5 shadow-lg shadow-indigo-200 dark:shadow-none flex flex-col justify-center text-white relative overflow-hidden">
+                            <div class="motion-blob absolute -right-10 -top-10 w-32 h-32 bg-white opacity-20 rounded-full blur-2xl"></div>
+                            <div class="motion-blob absolute -left-10 -bottom-10 w-24 h-24 bg-white opacity-10 rounded-full blur-xl" style="animation-delay: 2s;"></div>
+                            
+                            <p class="text-xs font-bold text-indigo-100 uppercase tracking-wider mb-2 relative z-10">Sisa Keuangan (Saldo)</p>
+                            <p class="text-3xl font-black relative z-10" id="dash-balance">Rp 0</p>
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 motion-slide-up delay-400">
                         <div class="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-100 dark:border-gray-700 shadow-sm">
                             <h3 class="text-sm font-bold text-gray-800 dark:text-white mb-4">Proporsi Pengeluaran</h3>
                             <div class="relative h-64 w-full flex justify-center">
@@ -178,7 +229,7 @@
                 </div>
 
                 <div id="view-input" class="view-section max-w-2xl mx-auto">
-                    <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 md:p-8">
+                    <div class="motion-slide-up bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 md:p-8">
                         <form id="form-transaction" onsubmit="saveTransaction(event)">
                             <input type="hidden" id="input-id">
                             
@@ -212,33 +263,36 @@
                             </div>
 
                             <div class="flex gap-3">
-                                <button type="button" onclick="resetForm()" class="w-1/3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-4 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">Batal</button>
-                                <button type="submit" class="w-2/3 bg-primary text-white font-bold py-4 rounded-xl hover:bg-primaryDark shadow-lg shadow-indigo-200 dark:shadow-none transition-colors">Simpan Transaksi</button>
+                                <button type="button" onclick="resetForm()" class="btn-press w-1/3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-4 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">Batal</button>
+                                <button type="submit" class="btn-press w-2/3 bg-primary text-white font-bold py-4 rounded-xl hover:bg-primaryDark shadow-lg shadow-indigo-200 dark:shadow-none transition-colors">Simpan Transaksi</button>
                             </div>
                         </form>
                     </div>
                 </div>
 
                 <div id="view-data" class="view-section max-w-4xl mx-auto">
-                    <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 md:p-6 min-h-[50vh]">
+                    <div class="motion-slide-up bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 md:p-6 min-h-[50vh]">
                         <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 border-b border-gray-100 dark:border-gray-700 pb-4">
                             <h3 class="font-bold text-gray-800 dark:text-white text-lg">Catatan Transaksi</h3>
-                            <button onclick="downloadCSV()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded-lg text-sm shadow-md transition-colors w-full sm:w-auto flex items-center justify-center gap-2">
+                            <button onclick="downloadCSV()" class="btn-press bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-5 rounded-lg text-sm shadow-md transition-colors w-full sm:w-auto flex items-center justify-center gap-2">
                                 <i class="fas fa-file-csv"></i> Download CSV
                             </button>
                         </div>
                         
                         <div id="transaction-list" class="space-y-3"></div>
                         
-                        <div id="no-transaction" class="text-center text-gray-400 hidden py-10 flex flex-col items-center">
-                            <i class="fas fa-folder-open text-4xl mb-3 text-gray-300 dark:text-gray-600"></i>
-                            <p>Belum ada transaksi dicatat.</p>
+                        <div id="no-transaction" class="text-center text-gray-400 hidden py-12 flex flex-col items-center">
+                            <div class="motion-float text-5xl mb-4 text-indigo-300 dark:text-gray-600">
+                                <i class="fas fa-box-open"></i>
+                            </div>
+                            <p class="font-medium text-gray-500">Kelihatan kosong di sini...</p>
+                            <p class="text-sm">Belum ada transaksi dicatat.</p>
                         </div>
                     </div>
                 </div>
 
                 <div id="view-settings" class="view-section max-w-3xl mx-auto">
-                    <div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 mb-6">
+                    <div class="motion-slide-up bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 mb-6">
                         <h2 class="text-lg font-bold text-gray-800 dark:text-white mb-4">Kelola Kategori & Budget</h2>
                         
                         <form onsubmit="saveCategory(event)" class="mb-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 transition-colors">
@@ -252,18 +306,18 @@
                             </div>
                             <div class="flex flex-col md:flex-row gap-3">
                                 <input type="number" id="new-cat-budget" placeholder="Target Budget (Opsional, isi 0 jika tidak ada)" class="flex-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg p-2.5 text-sm dark:text-white focus:outline-none focus:border-primary">
-                                <button type="button" id="cat-cancel-btn" onclick="cancelEditCategory()" class="hidden bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white text-sm font-bold py-2.5 px-4 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors">Batal</button>
-                                <button type="submit" id="cat-submit-btn" class="bg-gray-800 dark:bg-gray-700 text-white text-sm font-bold py-2.5 px-6 rounded-lg hover:bg-gray-900 dark:hover:bg-gray-600 transition-colors"><i class="fas fa-plus mr-1"></i> Tambah</button>
+                                <button type="button" id="cat-cancel-btn" onclick="cancelEditCategory()" class="btn-press hidden bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-white text-sm font-bold py-2.5 px-4 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors">Batal</button>
+                                <button type="submit" id="cat-submit-btn" class="btn-press bg-gray-800 dark:bg-gray-700 text-white text-sm font-bold py-2.5 px-6 rounded-lg hover:bg-gray-900 dark:hover:bg-gray-600 transition-colors"><i class="fas fa-plus mr-1"></i> Tambah</button>
                             </div>
                         </form>
 
                         <div id="category-list" class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-2"></div>
                     </div>
 
-                    <div class="bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-100 dark:border-red-900/50 shadow-sm p-6 text-center">
+                    <div class="motion-slide-up delay-100 bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-100 dark:border-red-900/50 shadow-sm p-6 text-center">
                         <h2 class="text-lg font-bold text-red-700 dark:text-red-400 mb-2">Mulai Bulan Baru (Reset)</h2>
                         <p class="text-sm text-red-600 dark:text-red-300 mb-4">Hapus semua data transaksi dan mulai dari awal. Kategori & Budget tetap aman.</p>
-                        <button onclick="confirmReset()" class="bg-red-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-red-700 transition-colors shadow-lg shadow-red-200 dark:shadow-none">
+                        <button onclick="confirmReset()" class="btn-press bg-red-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-red-700 transition-colors shadow-lg shadow-red-200 dark:shadow-none">
                             <i class="fas fa-trash-alt mr-2"></i> Kosongkan Data Transaksi
                         </button>
                     </div>
@@ -271,16 +325,16 @@
             </main>
 
             <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex justify-around z-40 pb-[env(safe-area-inset-bottom)] transition-colors">
-                <button onclick="switchView('dashboard')" class="nav-btn-mobile flex-1 py-3 flex flex-col items-center gap-1 text-gray-400 hover:text-primary active-nav-mobile" data-target="dashboard">
+                <button onclick="switchView('dashboard')" class="btn-press nav-btn-mobile flex-1 py-3 flex flex-col items-center gap-1 text-gray-400 hover:text-primary active-nav-mobile" data-target="dashboard">
                     <i class="fas fa-chart-pie text-xl"></i><span class="text-[10px] font-semibold">Beranda</span>
                 </button>
-                <button onclick="switchView('input')" class="nav-btn-mobile flex-1 py-3 flex flex-col items-center gap-1 text-gray-400 hover:text-primary" data-target="input">
+                <button onclick="switchView('input')" class="btn-press nav-btn-mobile flex-1 py-3 flex flex-col items-center gap-1 text-gray-400 hover:text-primary" data-target="input">
                     <i class="fas fa-plus-circle text-xl"></i><span class="text-[10px] font-semibold">Input</span>
                 </button>
-                <button onclick="switchView('data')" class="nav-btn-mobile flex-1 py-3 flex flex-col items-center gap-1 text-gray-400 hover:text-primary" data-target="data">
+                <button onclick="switchView('data')" class="btn-press nav-btn-mobile flex-1 py-3 flex flex-col items-center gap-1 text-gray-400 hover:text-primary" data-target="data">
                     <i class="fas fa-list-alt text-xl"></i><span class="text-[10px] font-semibold">Riwayat</span>
                 </button>
-                <button onclick="switchView('settings')" class="nav-btn-mobile flex-1 py-3 flex flex-col items-center gap-1 text-gray-400 hover:text-primary" data-target="settings">
+                <button onclick="switchView('settings')" class="btn-press nav-btn-mobile flex-1 py-3 flex flex-col items-center gap-1 text-gray-400 hover:text-primary" data-target="settings">
                     <i class="fas fa-cog text-xl"></i><span class="text-[10px] font-semibold">Sistem</span>
                 </button>
             </nav>
@@ -288,7 +342,6 @@
     </div>
 
     <style>
-        /* Status Aktif Navigasi */
         .active-nav { background-color: #f3f4f6; color: #4f46e5 !important; border-right: 3px solid #4f46e5; }
         .dark .active-nav { background-color: #374151; color: #818cf8 !important; border-right: 3px solid #818cf8; }
         .active-nav-mobile { color: #4f46e5 !important; }
@@ -299,7 +352,6 @@
         // === KONFIGURASI DATABASE LOCALSTORAGE ===
         const DB_KEY = 'KEUANGAN_PRO_DATA';
         
-        // Data Default
         const defaultData = {
             transactions: [],
             categories: [
@@ -314,23 +366,20 @@
         let appData = JSON.parse(localStorage.getItem(DB_KEY)) || defaultData;
         let pieChartInstance = null;
 
-        // === DAFTAR KODE AKSES LOGIN ===
+        // === DAFTAR KODE AKSES LOKAL (GANTI API URL JIKA PAKAI BACKEND GAS) ===
         const VALID_ACCESS_CODES = ["PRO-2026", "VIP-MANTAP", "DISKON50"];
 
         // === INISIALISASI ===
         document.addEventListener("DOMContentLoaded", () => {
             document.getElementById('input-date').valueAsDate = new Date();
             
-            // Set ikon tema sesuai state awal
             const isDark = document.documentElement.classList.contains('dark');
             document.getElementById('theme-icon').className = isDark ? 'fas fa-sun' : 'fas fa-moon';
             document.getElementById('theme-icon-login').className = isDark ? 'fas fa-sun' : 'fas fa-moon';
 
-            // Cek Status Akses Login
             if (localStorage.getItem('KEUANGAN_PRO_ACCESS') === 'GRANTED') {
                 unlockApp();
             } else {
-                // Tampilkan halaman login
                 document.getElementById('view-login').style.display = 'flex';
                 document.getElementById('app-layout').classList.add('hidden');
             }
@@ -358,11 +407,20 @@
 
         // === SISTEM LOGIN ===
         function checkAccessCode() {
-            const code = document.getElementById('access-code-input').value.trim().toUpperCase();
+            const codeInput = document.getElementById('access-code-input');
+            const code = codeInput.value.trim().toUpperCase();
+            
+            if(!code) {
+                showToast("Silakan masukkan kode lisensi!", "warning");
+                return;
+            }
+
             if (VALID_ACCESS_CODES.includes(code)) {
                 localStorage.setItem('KEUANGAN_PRO_ACCESS', 'GRANTED');
                 showToast("Akses Berhasil!", "success");
-                setTimeout(unlockApp, 500);
+                
+                // Tambahkan sedikit delay agar animasi keren terlihat sebelum masuk
+                setTimeout(unlockApp, 800);
             } else {
                 showToast("Kode Akses tidak valid atau salah!", "error");
             }
@@ -400,7 +458,7 @@
             
             setTimeout(() => {
                 toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 300);
+                setTimeout(() => toast.remove(), 400); // Waktu hapus disesuaikan animasi
             }, 4000);
         }
 
@@ -411,7 +469,9 @@
         // === NAVIGASI ===
         function switchView(viewName) {
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-            document.getElementById('view-' + viewName).classList.add('active');
+            
+            const targetView = document.getElementById('view-' + viewName);
+            targetView.classList.add('active');
             
             const titles = { 'dashboard': 'Dashboard', 'input': 'Catat Transaksi', 'data': 'Riwayat Keuangan', 'settings': 'Pengaturan Sistem' };
             document.getElementById('header-title').innerText = titles[viewName];
@@ -517,32 +577,35 @@
             updateCategoryDropdown();
         }
 
-        // === FITUR BARU: DOWNLOAD CSV ===
+        // === FITUR DOWNLOAD CSV FIX ===
         function downloadCSV() {
             if (!appData.transactions || appData.transactions.length === 0) {
                 showToast("Tidak ada data transaksi untuk di-download.", "warning");
                 return;
             }
             
-            let csvContent = "data:text/csv;charset=utf-8,";
-            csvContent += "Tanggal,Nama/Keterangan,Jenis,Kategori,Nominal (Rp)\n";
-            
-            // Urutkan berdasarkan tanggal terbaru
+            let csvContent = "Tanggal,Nama/Keterangan,Jenis,Kategori,Nominal (Rp)\n";
             const sorted = [...appData.transactions].sort((a,b) => new Date(b.tanggal) - new Date(a.tanggal));
             
             sorted.forEach(t => {
-                const row = `"${t.tanggal}","${t.nama}","${t.jenis}","${t.kategori}","${t.nominal}"`;
+                const namaClean = (t.nama || "").replace(/"/g, '""');
+                const row = `"${t.tanggal}","${namaClean}","${t.jenis}","${t.kategori}","${t.nominal}"`;
                 csvContent += row + "\n";
             });
             
-            const encodedUri = encodeURI(csvContent);
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `Laporan_Keuangan_${new Date().toISOString().slice(0,10)}.csv`);
-            document.body.appendChild(link);
             
+            link.setAttribute("href", url);
+            link.setAttribute("download", `Laporan_Keuangan_${new Date().toISOString().slice(0,10)}.csv`);
+            link.style.visibility = 'hidden';
+            
+            document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
             showToast("Laporan CSV berhasil di-download!", "success");
         }
 
@@ -557,7 +620,7 @@
                 const sorted = [...appData.transactions].sort((a,b) => new Date(b.tanggal) - new Date(a.tanggal));
                 let lastDate = "";
 
-                sorted.forEach(t => {
+                sorted.forEach((t, index) => {
                     if(t.tanggal !== lastDate) {
                         const dh = document.createElement('div');
                         dh.className = "text-xs font-bold text-gray-500 dark:text-gray-400 mt-5 mb-2 border-b border-gray-100 dark:border-gray-700 pb-1";
@@ -572,7 +635,12 @@
                     const sign = isIncome ? "+" : "-";
 
                     const card = document.createElement('div');
-                    card.className = "bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl flex justify-between items-center group transition-colors hover:bg-gray-100 dark:hover:bg-gray-700/50";
+                    // Add staggered animation delay inline based on index (up to max 5 to prevent long waits)
+                    const delay = index < 5 ? `animation-delay: ${index * 100}ms;` : '';
+                    
+                    card.className = "motion-slide-up card-hover bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl flex justify-between items-center group transition-colors hover:bg-gray-100 dark:hover:bg-gray-700/50";
+                    card.style = delay;
+                    
                     card.innerHTML = `
                         <div class="flex items-center gap-4">
                             <div class="w-10 h-10 rounded-full flex items-center justify-center ${bgIcon}"><i class="fas ${icon}"></i></div>
@@ -584,8 +652,8 @@
                         <div class="flex items-center gap-4">
                             <p class="font-bold ${color} text-sm whitespace-nowrap">${sign} ${formatRupiah(t.nominal)}</p>
                             <div class="flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                                <button onclick="editTransaction('${t.id}')" class="text-gray-400 hover:text-primary p-1"><i class="fas fa-edit"></i></button>
-                                <button onclick="deleteTransaction('${t.id}')" class="text-gray-400 hover:text-red-500 p-1"><i class="fas fa-trash"></i></button>
+                                <button onclick="editTransaction('${t.id}')" class="btn-press text-gray-400 hover:text-primary p-1"><i class="fas fa-edit"></i></button>
+                                <button onclick="deleteTransaction('${t.id}')" class="btn-press text-gray-400 hover:text-red-500 p-1"><i class="fas fa-trash"></i></button>
                             </div>
                         </div>
                     `;
@@ -594,32 +662,33 @@
             }
         }
 
-        // === LOGIC KATEGORI (DENGAN FITUR EDIT) ===
+        // === LOGIC KATEGORI ===
         function updateCategoryList() {
             const container = document.getElementById('category-list');
             container.innerHTML = '';
             
-            appData.categories.forEach(c => {
+            appData.categories.forEach((c, index) => {
                 const bg = c.jenis === "Pemasukan" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
                 const bud = c.budget > 0 ? `<br><span class="text-xs text-gray-500 dark:text-gray-400">Budget: ${formatRupiah(c.budget)}</span>` : '';
                 
                 const item = document.createElement('div');
-                item.className = "flex justify-between items-center p-3 border border-gray-100 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 shadow-sm";
+                const delay = index < 10 ? `animation-delay: ${index * 50}ms;` : '';
+                item.className = "motion-slide-up flex justify-between items-center p-3 border border-gray-100 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow";
+                item.style = delay;
                 item.innerHTML = `
                     <div>
                         <p class="text-sm font-bold text-gray-800 dark:text-gray-200">${c.nama}</p>
                         <span class="text-[10px] px-2 py-0.5 rounded-md font-medium mt-1 inline-block ${bg}">${c.jenis}</span> ${bud}
                     </div>
                     <div class="flex gap-1">
-                        <button onclick="editCategory('${c.id}')" class="text-gray-300 hover:text-blue-500 p-2 transition-colors" title="Edit"><i class="fas fa-edit"></i></button>
-                        <button onclick="deleteCategory('${c.id}')" class="text-gray-300 hover:text-red-500 p-2 transition-colors" title="Hapus"><i class="fas fa-times"></i></button>
+                        <button onclick="editCategory('${c.id}')" class="btn-press text-gray-300 hover:text-blue-500 p-2 transition-colors" title="Edit"><i class="fas fa-edit"></i></button>
+                        <button onclick="deleteCategory('${c.id}')" class="btn-press text-gray-300 hover:text-red-500 p-2 transition-colors" title="Hapus"><i class="fas fa-times"></i></button>
                     </div>
                 `;
                 container.appendChild(item);
             });
         }
 
-        // FUNGSI EDIT KATEGORI
         function editCategory(id) {
             const cat = appData.categories.find(c => c.id === id);
             if(!cat) return;
@@ -648,32 +717,27 @@
             const nama = document.getElementById('new-cat-name').value;
             const budget = parseInt(document.getElementById('new-cat-budget').value) || 0;
 
-            // Jika sedang tambah baru dan nama sudah ada
             if(!id && appData.categories.find(c => c.nama.toLowerCase() === nama.toLowerCase())) {
                 showToast("Nama kategori sudah ada!", "warning"); return;
             }
 
             if (id) {
-                // Proses Edit
                 const index = appData.categories.findIndex(c => c.id === id);
                 if (index !== -1) {
-                    // Update kategori di transaksi yang memakai kategori ini
                     const namaLama = appData.categories[index].nama;
                     appData.transactions.forEach(t => {
                         if (t.kategori === namaLama) t.kategori = nama;
                     });
-                    
                     appData.categories[index] = { id, jenis, nama, budget };
                     showToast("Kategori & Budget diperbarui!");
                 }
             } else {
-                // Tambah baru
                 appData.categories.push({ id: generateId(), jenis, nama, budget });
                 showToast("Kategori baru berhasil ditambahkan!");
             }
             
             saveData();
-            cancelEditCategory(); // reset form kategori
+            cancelEditCategory(); 
         }
 
         function deleteCategory(id) {
@@ -711,7 +775,6 @@
 
             renderBudgetTable(catData);
 
-            // Chart Configuration
             const ctx = document.getElementById('expenseChart');
             const noData = document.getElementById('no-chart-data');
             
