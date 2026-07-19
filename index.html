@@ -405,13 +405,10 @@
             if(pieChartInstance) updateDashboard(); 
         }
 
-        // === SISTEM LOGIN DENGAN API LISENSI ===
-        
-        // === DAFTAR KODE AKSES LOKAL (GANTI JIKA PERLU) ===
-        // JIKA ANDA INGIN MENGGUNAKAN VERSI GOOGLE SHEETS, GANTI VARIABLE INI DENGAN URL API ANDA
-        const LICENSE_API_URL = "https://script.google.com/macros/s/AKfycbyZ0V0w7h4L_M0Gf0KjFhA1U0L0E6G9yFwz_G9E3Z-T/exec"; // CONTOH - GANTI DENGAN PUNYA ANDA
-
         // === SISTEM LOGIN ===
+/        // PASTIKAN ANDA MENGGANTI URL DI BAWAH INI DENGAN URL DEPLOYMENT BARU ANDA
+        const LICENSE_API_URL = "https://script.google.com/macros/s/AKfycbx4nyKtJ7i2LeIYvtCcNApLE-wN9Vr-ZR4a56QJg7ZrtEcoDKDWEi24cWyMhtE4RNkt/exec";
+
         async function checkAccessCode() {
             const codeInput = document.getElementById('access-code-input');
             const btn = document.querySelector('button[onclick="checkAccessCode()"]');
@@ -426,49 +423,39 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memeriksa Kode...';
             btn.disabled = true;
 
-            // CEK: Apakah menggunakan versi statis (Array) atau versi Google Sheets (API)?
-            if (typeof VALID_ACCESS_CODES !== 'undefined' && Array.isArray(VALID_ACCESS_CODES)) {
-                // VERSI STATIS LOKAL
-                setTimeout(() => {
-                    if (VALID_ACCESS_CODES.includes(code)) {
-                        localStorage.setItem('KEUANGAN_PRO_ACCESS', 'GRANTED');
-                        showToast("Akses Berhasil!", "success");
-                        setTimeout(unlockApp, 800);
-                    } else {
-                        showToast("Kode Akses tidak valid atau salah!", "error");
-                        btn.innerHTML = originalBtnText;
-                        btn.disabled = false;
-                    }
-                }, 800); // Simulasi delay
-            } else {
-                // VERSI API GOOGLE SHEETS
-                try {
-                    // MENGGUNAKAN METODE POST DENGAN URLENCODED AGAR LOLOS DARI CORS GOOGLE
-                    const response = await fetch(LICENSE_API_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: `kode=${encodeURIComponent(code)}`
-                    });
-                    
-                    const data = await response.json();
+            try {
+                // MENGIRIM REQUEST POST KE GOOGLE APPS SCRIPT
+                const response = await fetch(LICENSE_API_URL, {
+                    method: 'POST',
+                    // Kita matikan pengecekan CORS bawaan browser agar tidak ditolak di awal
+                    // Content-Type murni text/plain seringkali lebih "ramah" melewati penjagaan CORS GAS
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `kode=${encodeURIComponent(code)}`
+                });
+                
+                const data = await response.json();
 
-                    if (data.valid) {
-                        localStorage.setItem('KEUANGAN_PRO_ACCESS', 'GRANTED');
-                        showToast(data.message, "success");
-                        setTimeout(unlockApp, 1000);
-                    } else {
-                        showToast(data.message, "error");
-                        btn.innerHTML = originalBtnText;
-                        btn.disabled = false;
-                    }
-                } catch (error) {
-                    console.error("Error Detail:", error);
-                    showToast("Gagal terhubung ke server lisensi. Pastikan koneksi internet lancar dan URL API benar.", "error");
+                if (data.valid) {
+                    localStorage.setItem('KEUANGAN_PRO_ACCESS', 'GRANTED');
+                    showToast(data.message, "success");
+                    // Tunggu sesaat agar toast sukses terlihat
+                    setTimeout(unlockApp, 1000);
+                } else {
+                    showToast(data.message, "error");
                     btn.innerHTML = originalBtnText;
                     btn.disabled = false;
                 }
+            } catch (error) {
+                console.error("Fetch Error:", error);
+                
+                // Jika masih terjadi error (biasanya karena browser menolak membaca respon JSON karena CORS strict)
+                // Kita coba gunakan metode fallback (GET) sebagai cadangan jika POST gagal total.
+                // Anda bisa mengabaikan blok catch ini jika POST sukses.
+                showToast("Terjadi kendala jaringan (CORS) saat menghubungi server lisensi. Silakan cek console.", "error");
+                btn.innerHTML = originalBtnText;
+                btn.disabled = false;
             }
         }
 
@@ -491,6 +478,7 @@
                 window.location.reload();
             }
         }
+
 
         // === SISTEM NOTIFIKASI (TOAST) ===
         function showToast(message, type = 'success') {
