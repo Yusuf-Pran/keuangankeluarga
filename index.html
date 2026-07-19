@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>KeuanganPro - Member Area</title>
     
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -17,6 +18,7 @@
         }
     </script>
     
+    <!-- Chart.js & FontAwesome -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
@@ -24,7 +26,6 @@
         * { -webkit-tap-highlight-color: transparent; }
         body { font-family: 'Inter', 'Segoe UI', sans-serif; }
         
-        /* === BASIC ANIMATIONS === */
         .view-section { display: none; }
         .view-section.active { display: block; animation: fadeIn 0.4s ease forwards; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -32,31 +33,21 @@
         .toast { transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         .toast.show { transform: translateX(0); }
         
-        /* Scrollbar Styling */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         .dark ::-webkit-scrollbar-thumb { background: #475569; }
 
-        /* ==========================================
-           MOTION GRAPHICS & ADVANCED ANIMATIONS
-           ========================================== */
-           
-        /* 1. Slide Up Berurutan (Stagger) */
         @keyframes slideUp {
             from { opacity: 0; transform: translateY(30px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .motion-slide-up {
-            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-            opacity: 0; /* Mulai dari tidak terlihat */
-        }
+        .motion-slide-up { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
         .delay-100 { animation-delay: 100ms; }
         .delay-200 { animation-delay: 200ms; }
         .delay-300 { animation-delay: 300ms; }
         .delay-400 { animation-delay: 400ms; }
 
-        /* 2. Efek Melayang (Floating) untuk Ikon */
         @keyframes float {
             0% { transform: translateY(0px); }
             50% { transform: translateY(-12px); }
@@ -64,7 +55,6 @@
         }
         .motion-float { animation: float 3.5s ease-in-out infinite; }
 
-        /* 3. Efek Blob Bergerak untuk Background Kartu Utama */
         @keyframes blobBounce {
             0% { transform: translate(0, 0) scale(1); }
             33% { transform: translate(20px, -30px) scale(1.2); }
@@ -73,11 +63,9 @@
         }
         .motion-blob { animation: blobBounce 8s infinite ease-in-out; }
 
-        /* 4. Efek Tombol Ditekan (Micro-interaction) */
         .btn-press { transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1); }
         .btn-press:active { transform: scale(0.94); }
         
-        /* 5. Kartu Membesar saat di-Hover */
         .card-hover { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease; }
         .card-hover:hover { transform: translateY(-4px); }
     </style>
@@ -94,6 +82,16 @@
 
     <div id="toast-container" class="fixed top-5 right-5 z-[300] flex flex-col gap-3"></div>
 
+    <!-- CUSTOM MODAL (Pengganti Alert & Confirm Bawaan Browser) -->
+    <div id="custom-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[500] hidden flex-col justify-center items-center px-4 transition-opacity">
+        <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 max-w-sm w-full text-center transform transition-all motion-slide-up">
+            <h3 id="modal-title" class="text-xl font-bold text-gray-900 dark:text-white mb-2">Informasi</h3>
+            <p id="modal-message" class="text-sm text-gray-500 dark:text-gray-400 mb-8">Pesan</p>
+            <div class="flex gap-3 justify-center w-full" id="modal-buttons"></div>
+        </div>
+    </div>
+
+    <!-- VIEW LOGIN -->
     <div id="view-login" class="flex-1 flex flex-col justify-center items-center absolute inset-0 z-[200] bg-gray-50 dark:bg-gray-900 transition-colors">
         <div class="bg-white dark:bg-gray-800 p-8 md:p-10 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 w-full max-w-sm text-center mx-4 motion-slide-up">
             
@@ -102,11 +100,11 @@
             </div>
             
             <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Akses Terkunci</h2>
-            <p class="text-sm text-gray-500 dark:text-gray-400 mb-8">Masukkan kode akses untuk membuka Member Area.</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-8">Masukkan kode lisensi pembelian Anda untuk membuka Member Area.</p>
             
             <input type="text" id="access-code-input" placeholder="KODE AKSES" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-center text-lg font-bold uppercase tracking-widest focus:ring-2 focus:ring-primary focus:outline-none dark:text-white mb-6 transition-all">
             
-            <button onclick="checkAccessCode()" class="btn-press w-full bg-primary text-white font-bold py-4 rounded-xl hover:bg-primaryDark transition-colors shadow-lg shadow-indigo-200 dark:shadow-none mb-4">
+            <button onclick="checkAccessCode()" id="btn-login" class="btn-press w-full bg-primary text-white font-bold py-4 rounded-xl hover:bg-primaryDark transition-colors shadow-lg shadow-indigo-200 dark:shadow-none mb-4">
                 Buka Akses
             </button>
             <p class="text-xs text-gray-400">KeuanganPro &copy; 2026</p>
@@ -117,8 +115,10 @@
         </button>
     </div>
 
+    <!-- APP LAYOUT UTAMA -->
     <div id="app-layout" class="flex-1 flex h-full hidden w-full">
         
+        <!-- SIDEBAR (DESKTOP) -->
         <aside class="hidden md:flex flex-col w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-colors shadow-sm z-20">
             <div class="p-6 flex items-center gap-3 border-b border-gray-100 dark:border-gray-700">
                 <div class="bg-primary text-white w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xl"><i class="fas fa-wallet"></i></div>
@@ -171,9 +171,9 @@
 
             <main class="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8 relative">
                 
+                <!-- 1. VIEW DASHBOARD -->
                 <div id="view-dashboard" class="view-section active max-w-5xl mx-auto">
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                        
                         <div class="card-hover motion-slide-up delay-100 bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col justify-center">
                             <div class="flex justify-between items-center mb-2">
                                 <p class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Pemasukan</p>
@@ -193,7 +193,6 @@
                         <div class="card-hover motion-slide-up delay-300 bg-primary rounded-2xl p-5 shadow-lg shadow-indigo-200 dark:shadow-none flex flex-col justify-center text-white relative overflow-hidden">
                             <div class="motion-blob absolute -right-10 -top-10 w-32 h-32 bg-white opacity-20 rounded-full blur-2xl"></div>
                             <div class="motion-blob absolute -left-10 -bottom-10 w-24 h-24 bg-white opacity-10 rounded-full blur-xl" style="animation-delay: 2s;"></div>
-                            
                             <p class="text-xs font-bold text-indigo-100 uppercase tracking-wider mb-2 relative z-10">Sisa Keuangan (Saldo)</p>
                             <p class="text-3xl font-black relative z-10" id="dash-balance">Rp 0</p>
                         </div>
@@ -228,6 +227,7 @@
                     </div>
                 </div>
 
+                <!-- 2. VIEW INPUT -->
                 <div id="view-input" class="view-section max-w-2xl mx-auto">
                     <div class="motion-slide-up bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 md:p-8">
                         <form id="form-transaction" onsubmit="saveTransaction(event)">
@@ -270,6 +270,7 @@
                     </div>
                 </div>
 
+                <!-- 3. VIEW DATA (HISTORY) -->
                 <div id="view-data" class="view-section max-w-4xl mx-auto">
                     <div class="motion-slide-up bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 md:p-6 min-h-[50vh]">
                         <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4 border-b border-gray-100 dark:border-gray-700 pb-4">
@@ -282,15 +283,14 @@
                         <div id="transaction-list" class="space-y-3"></div>
                         
                         <div id="no-transaction" class="text-center text-gray-400 hidden py-12 flex flex-col items-center">
-                            <div class="motion-float text-5xl mb-4 text-indigo-300 dark:text-gray-600">
-                                <i class="fas fa-box-open"></i>
-                            </div>
+                            <div class="motion-float text-5xl mb-4 text-indigo-300 dark:text-gray-600"><i class="fas fa-box-open"></i></div>
                             <p class="font-medium text-gray-500">Kelihatan kosong di sini...</p>
                             <p class="text-sm">Belum ada transaksi dicatat.</p>
                         </div>
                     </div>
                 </div>
 
+                <!-- 4. VIEW SETTINGS -->
                 <div id="view-settings" class="view-section max-w-3xl mx-auto">
                     <div class="motion-slide-up bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 mb-6">
                         <h2 class="text-lg font-bold text-gray-800 dark:text-white mb-4">Kelola Kategori & Budget</h2>
@@ -349,6 +349,52 @@
     </style>
 
     <script>
+        // === CUSTOM MODAL (Pengganti Alert & Confirm) ===
+        const Modal = {
+            show: function(options) {
+                document.getElementById('modal-title').innerText = options.title || 'Informasi';
+                document.getElementById('modal-message').innerText = options.message || '';
+                
+                const btnContainer = document.getElementById('modal-buttons');
+                btnContainer.innerHTML = '';
+
+                if (options.type === 'confirm') {
+                    const btnCancel = document.createElement('button');
+                    btnCancel.className = "flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-3 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors";
+                    btnCancel.innerText = "Batal";
+                    btnCancel.onclick = () => { this.hide(); if(options.onCancel) options.onCancel(); };
+                    btnContainer.appendChild(btnCancel);
+
+                    const btnOk = document.createElement('button');
+                    btnOk.className = "flex-1 " + (options.danger ? "bg-red-600 hover:bg-red-700" : "bg-primary hover:bg-primaryDark") + " text-white font-bold py-3 rounded-xl shadow-lg transition-colors";
+                    btnOk.innerText = options.confirmText || "Ya";
+                    btnOk.onclick = () => { this.hide(); if(options.onConfirm) options.onConfirm(); };
+                    btnContainer.appendChild(btnOk);
+                } else {
+                    const btn = document.createElement('button');
+                    btn.className = "w-full bg-primary text-white font-bold py-3 rounded-xl hover:bg-primaryDark shadow-lg transition-colors";
+                    btn.innerText = "OK";
+                    btn.onclick = () => { this.hide(); if(options.onConfirm) options.onConfirm(); };
+                    btnContainer.appendChild(btn);
+                }
+
+                const modalEl = document.getElementById('custom-modal');
+                modalEl.classList.remove('hidden');
+                modalEl.classList.add('flex');
+            },
+            hide: function() {
+                const modalEl = document.getElementById('custom-modal');
+                modalEl.classList.add('hidden');
+                modalEl.classList.remove('flex');
+            },
+            alert: function(msg, onOk) {
+                this.show({ title: 'Informasi', message: msg, onConfirm: onOk });
+            },
+            confirm: function(msg, onOk, danger=false) {
+                this.show({ type: 'confirm', title: 'Konfirmasi', message: msg, confirmText: 'Ya', danger: danger, onConfirm: onOk });
+            }
+        };
+
         // === KONFIGURASI DATABASE LOCALSTORAGE ===
         const DB_KEY = 'KEUANGAN_PRO_DATA';
         
@@ -366,9 +412,6 @@
         let appData = JSON.parse(localStorage.getItem(DB_KEY)) || defaultData;
         let pieChartInstance = null;
 
-        // === DAFTAR KODE AKSES LOKAL (GANTI API URL JIKA PAKAI BACKEND GAS) ===
-        const VALID_ACCESS_CODES = ["PRO-2026", "VIP-MANTAP", "DISKON50"];
-
         // === INISIALISASI ===
         document.addEventListener("DOMContentLoaded", () => {
             document.getElementById('input-date').valueAsDate = new Date();
@@ -385,7 +428,6 @@
             }
         });
 
-        // === LOGIC TEMA (DARK/LIGHT) ===
         function toggleTheme() {
             const html = document.documentElement;
             const icon = document.getElementById('theme-icon');
@@ -405,13 +447,14 @@
             if(pieChartInstance) updateDashboard(); 
         }
 
-        // === SISTEM LOGIN ===
-/        // PASTIKAN ANDA MENGGANTI URL DI BAWAH INI DENGAN URL DEPLOYMENT BARU ANDA
+        // === SISTEM LOGIN API ===
+        
+        // PASTIKAN MENGGANTI URL DI BAWAH INI DENGAN URL DEPLOYMENT BARU DARI APPS SCRIPT ANDA
         const LICENSE_API_URL = "https://script.google.com/macros/s/AKfycbx4nyKtJ7i2LeIYvtCcNApLE-wN9Vr-ZR4a56QJg7ZrtEcoDKDWEi24cWyMhtE4RNkt/exec";
 
         async function checkAccessCode() {
             const codeInput = document.getElementById('access-code-input');
-            const btn = document.querySelector('button[onclick="checkAccessCode()"]');
+            const btn = document.getElementById('btn-login');
             const code = codeInput.value.trim().toUpperCase();
             
             if(!code) {
@@ -424,41 +467,26 @@
             btn.disabled = true;
 
             try {
-                // MENGIRIM REQUEST POST KE GOOGLE APPS SCRIPT
-                const response = await fetch(LICENSE_API_URL, {
-                    method: 'POST',
-                    // Kita matikan pengecekan CORS bawaan browser agar tidak ditolak di awal
-                    // Content-Type murni text/plain seringkali lebih "ramah" melewati penjagaan CORS GAS
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `kode=${encodeURIComponent(code)}`
-                });
-                
+                // Menggunakan Metode GET (Lebih stabil untuk Vercel ke GAS)
+                const response = await fetch(`${LICENSE_API_URL}?kode=${encodeURIComponent(code)}`);
                 const data = await response.json();
 
                 if (data.valid) {
                     localStorage.setItem('KEUANGAN_PRO_ACCESS', 'GRANTED');
                     showToast(data.message, "success");
-                    // Tunggu sesaat agar toast sukses terlihat
                     setTimeout(unlockApp, 1000);
                 } else {
-                    showToast(data.message, "error");
+                    Modal.alert(data.message);
                     btn.innerHTML = originalBtnText;
                     btn.disabled = false;
                 }
             } catch (error) {
                 console.error("Fetch Error:", error);
-                
-                // Jika masih terjadi error (biasanya karena browser menolak membaca respon JSON karena CORS strict)
-                // Kita coba gunakan metode fallback (GET) sebagai cadangan jika POST gagal total.
-                // Anda bisa mengabaikan blok catch ini jika POST sukses.
-                showToast("Terjadi kendala jaringan (CORS) saat menghubungi server lisensi. Silakan cek console.", "error");
+                Modal.alert("Gagal terhubung ke server lisensi. Pastikan koneksi internet lancar dan URL API sudah benar.");
                 btn.innerHTML = originalBtnText;
                 btn.disabled = false;
             }
         }
-
 
         function unlockApp() {
             document.getElementById('view-login').style.display = 'none';
@@ -468,19 +496,12 @@
         }
 
         function logout() {
-            if(confirm("Yakin ingin mengunci kembali aplikasi? (Akses Anda akan dicabut dan Anda memerlukan lisensi baru untuk masuk).")) {
+            Modal.confirm("Yakin ingin mengunci kembali aplikasi? (Akses Anda akan dicabut dan Anda memerlukan lisensi baru untuk masuk).", () => {
                 localStorage.removeItem('KEUANGAN_PRO_ACCESS');
-                document.getElementById('app-layout').classList.add('hidden');
-                document.getElementById('view-login').style.display = 'flex';
-                document.getElementById('access-code-input').value = '';
-                
-                // Opsional: Untuk keamanan ekstra, refresh halaman
-                window.location.reload();
-            }
+                window.location.reload(); // Refresh aman
+            }, true);
         }
 
-
-        // === SISTEM NOTIFIKASI (TOAST) ===
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -496,7 +517,7 @@
             
             setTimeout(() => {
                 toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 400); // Waktu hapus disesuaikan animasi
+                setTimeout(() => toast.remove(), 400);
             }, 4000);
         }
 
@@ -504,12 +525,9 @@
         function generateId() { return '_' + Math.random().toString(36).substr(2, 9); }
         function formatRupiah(angka) { return "Rp " + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
 
-        // === NAVIGASI ===
         function switchView(viewName) {
             document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-            
-            const targetView = document.getElementById('view-' + viewName);
-            targetView.classList.add('active');
+            document.getElementById('view-' + viewName).classList.add('active');
             
             const titles = { 'dashboard': 'Dashboard', 'input': 'Catat Transaksi', 'data': 'Riwayat Keuangan', 'settings': 'Pengaturan Sistem' };
             document.getElementById('header-title').innerText = titles[viewName];
@@ -530,7 +548,6 @@
             updateDashboard();
         }
 
-        // === LOGIC TRANSAKSI ===
         function updateCategoryDropdown() {
             const type = document.getElementById('input-type').value;
             const selectCat = document.getElementById('input-category');
@@ -558,7 +575,6 @@
                 nominal: nominal
             };
 
-            // ALERT JIKA OVER BUDGET
             if (jenis === 'Pengeluaran') {
                 const catInfo = appData.categories.find(c => c.nama === kategori);
                 if (catInfo && catInfo.budget > 0) {
@@ -600,11 +616,11 @@
         }
 
         function deleteTransaction(id) {
-            if(confirm("Yakin ingin menghapus transaksi ini?")) {
+            Modal.confirm("Yakin ingin menghapus transaksi ini?", () => {
                 appData.transactions = appData.transactions.filter(t => t.id !== id);
                 saveData();
                 showToast("Transaksi dihapus.");
-            }
+            }, true);
         }
 
         function resetForm() {
@@ -673,7 +689,6 @@
                     const sign = isIncome ? "+" : "-";
 
                     const card = document.createElement('div');
-                    // Add staggered animation delay inline based on index (up to max 5 to prevent long waits)
                     const delay = index < 5 ? `animation-delay: ${index * 100}ms;` : '';
                     
                     card.className = "motion-slide-up card-hover bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl flex justify-between items-center group transition-colors hover:bg-gray-100 dark:hover:bg-gray-700/50";
@@ -700,7 +715,6 @@
             }
         }
 
-        // === LOGIC KATEGORI ===
         function updateCategoryList() {
             const container = document.getElementById('category-list');
             container.innerHTML = '';
@@ -779,23 +793,22 @@
         }
 
         function deleteCategory(id) {
-            if(confirm("Hapus kategori ini? (Data transaksi dengan kategori ini tetap aman di riwayat)")) {
+            Modal.confirm("Hapus kategori ini? (Data transaksi dengan kategori ini tetap aman di riwayat)", () => {
                 appData.categories = appData.categories.filter(c => c.id !== id);
                 saveData();
                 showToast("Kategori dihapus.");
-            }
+            }, true);
         }
 
         function confirmReset() {
-            if(confirm("PERINGATAN: Semua data transaksi akan dihapus permanen. Lanjutkan?")) {
+            Modal.confirm("PERINGATAN: Semua data transaksi akan dihapus permanen. Lanjutkan?", () => {
                 appData.transactions = [];
                 saveData();
                 showToast("Data transaksi berhasil direset.");
                 switchView('dashboard');
-            }
+            }, true);
         }
 
-        // === LOGIC DASHBOARD & CHART ===
         function updateDashboard() {
             let inTotal = 0, exTotal = 0, catData = {};
             
