@@ -68,6 +68,11 @@
         
         .card-hover { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease; }
         .card-hover:hover { transform: translateY(-4px); }
+        
+        .active-nav { background-color: #f3f4f6; color: #4f46e5 !important; border-right: 3px solid #4f46e5; }
+        .dark .active-nav { background-color: #374151; color: #818cf8 !important; border-right: 3px solid #818cf8; }
+        .active-nav-mobile { color: #4f46e5 !important; }
+        .dark .active-nav-mobile { color: #818cf8 !important; }
     </style>
 
     <script>
@@ -82,11 +87,14 @@
 
     <div id="toast-container" class="fixed top-5 right-5 z-[300] flex flex-col gap-3"></div>
 
-    <!-- CUSTOM MODAL (Pengganti Alert & Confirm Bawaan Browser) -->
+    <!-- CUSTOM MODAL -->
     <div id="custom-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[500] hidden flex-col justify-center items-center px-4 transition-opacity">
         <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl p-8 max-w-sm w-full text-center transform transition-all motion-slide-up">
             <h3 id="modal-title" class="text-xl font-bold text-gray-900 dark:text-white mb-2">Informasi</h3>
             <p id="modal-message" class="text-sm text-gray-500 dark:text-gray-400 mb-8">Pesan</p>
+            <div id="modal-input-container" class="hidden mb-6">
+                <input type="text" id="modal-input" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 text-center uppercase font-bold focus:border-primary focus:outline-none dark:text-white" placeholder="Ketik di sini...">
+            </div>
             <div class="flex gap-3 justify-center w-full" id="modal-buttons"></div>
         </div>
     </div>
@@ -283,7 +291,9 @@
                         <div id="transaction-list" class="space-y-3"></div>
                         
                         <div id="no-transaction" class="text-center text-gray-400 hidden py-12 flex flex-col items-center">
-                            <div class="motion-float text-5xl mb-4 text-indigo-300 dark:text-gray-600"><i class="fas fa-box-open"></i></div>
+                            <div class="motion-float text-5xl mb-4 text-indigo-300 dark:text-gray-600">
+                                <i class="fas fa-box-open"></i>
+                            </div>
                             <p class="font-medium text-gray-500">Kelihatan kosong di sini...</p>
                             <p class="text-sm">Belum ada transaksi dicatat.</p>
                         </div>
@@ -341,24 +351,29 @@
         </div>
     </div>
 
-    <style>
-        .active-nav { background-color: #f3f4f6; color: #4f46e5 !important; border-right: 3px solid #4f46e5; }
-        .dark .active-nav { background-color: #374151; color: #818cf8 !important; border-right: 3px solid #818cf8; }
-        .active-nav-mobile { color: #4f46e5 !important; }
-        .dark .active-nav-mobile { color: #818cf8 !important; }
-    </style>
-
     <script>
-        // === CUSTOM MODAL (Pengganti Alert & Confirm) ===
+        // === CUSTOM MODAL (Pengganti Alert & Confirm Bawaan Browser) ===
         const Modal = {
             show: function(options) {
                 document.getElementById('modal-title').innerText = options.title || 'Informasi';
                 document.getElementById('modal-message').innerText = options.message || '';
                 
+                const inputContainer = document.getElementById('modal-input-container');
+                const inputEl = document.getElementById('modal-input');
+                
+                if(options.type === 'prompt') {
+                    inputContainer.classList.remove('hidden');
+                    inputEl.value = '';
+                    inputEl.placeholder = options.placeholder || 'Ketik di sini...';
+                    setTimeout(() => inputEl.focus(), 100);
+                } else {
+                    inputContainer.classList.add('hidden');
+                }
+
                 const btnContainer = document.getElementById('modal-buttons');
                 btnContainer.innerHTML = '';
 
-                if (options.type === 'confirm') {
+                if (options.type === 'confirm' || options.type === 'prompt') {
                     const btnCancel = document.createElement('button');
                     btnCancel.className = "flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-3 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors";
                     btnCancel.innerText = "Batal";
@@ -368,7 +383,14 @@
                     const btnOk = document.createElement('button');
                     btnOk.className = "flex-1 " + (options.danger ? "bg-red-600 hover:bg-red-700" : "bg-primary hover:bg-primaryDark") + " text-white font-bold py-3 rounded-xl shadow-lg transition-colors";
                     btnOk.innerText = options.confirmText || "Ya";
-                    btnOk.onclick = () => { this.hide(); if(options.onConfirm) options.onConfirm(); };
+                    btnOk.onclick = () => { 
+                        this.hide(); 
+                        if(options.type === 'prompt') {
+                            if(options.onConfirm) options.onConfirm(inputEl.value.trim());
+                        } else {
+                            if(options.onConfirm) options.onConfirm(); 
+                        }
+                    };
                     btnContainer.appendChild(btnOk);
                 } else {
                     const btn = document.createElement('button');
@@ -392,6 +414,9 @@
             },
             confirm: function(msg, onOk, danger=false) {
                 this.show({ type: 'confirm', title: 'Konfirmasi', message: msg, confirmText: 'Ya', danger: danger, onConfirm: onOk });
+            },
+            prompt: function(msg, placeholder, onOk) {
+                this.show({ type: 'prompt', title: 'Aksi Dibutuhkan', message: msg, placeholder: placeholder, danger: true, confirmText: 'Proses', onConfirm: onOk });
             }
         };
 
@@ -450,7 +475,7 @@
         // === SISTEM LOGIN API ===
         
         // PASTIKAN MENGGANTI URL DI BAWAH INI DENGAN URL DEPLOYMENT BARU DARI APPS SCRIPT ANDA
-        const LICENSE_API_URL = "https://script.google.com/macros/s/AKfycbzQJZ9zgcpjapsm0g6MHTq8jTznuunOzouwYvRGKPP-adtBGRuHLmr8-x2E27HzKjo/exec";
+        const LICENSE_API_URL = "https://script.google.com/macros/s/AKfycbx6xIx7hrOISaP3uTpE0uZ_8SKIbRw38r_p8LcT8BMesCMVtkxjLCxYkN58cnCenw8i/exec"; // Ganti URL ini!
 
         async function checkAccessCode() {
             const codeInput = document.getElementById('access-code-input');
@@ -467,7 +492,7 @@
             btn.disabled = true;
 
             try {
-                // Menggunakan Metode GET (Lebih stabil untuk Vercel ke GAS)
+                // MENGGUNAKAN METODE GET YANG LEBIH STABIL UNTUK CORS GAS DARI VERCEL
                 const response = await fetch(`${LICENSE_API_URL}?kode=${encodeURIComponent(code)}`);
                 const data = await response.json();
 
@@ -498,7 +523,7 @@
         function logout() {
             Modal.confirm("Yakin ingin mengunci kembali aplikasi? (Akses Anda akan dicabut dan Anda memerlukan lisensi baru untuk masuk).", () => {
                 localStorage.removeItem('KEUANGAN_PRO_ACCESS');
-                window.location.reload(); // Refresh aman
+                window.location.reload(); 
             }, true);
         }
 
@@ -631,7 +656,6 @@
             updateCategoryDropdown();
         }
 
-        // === FITUR DOWNLOAD CSV FIX ===
         function downloadCSV() {
             if (!appData.transactions || appData.transactions.length === 0) {
                 showToast("Tidak ada data transaksi untuk di-download.", "warning");
@@ -801,12 +825,16 @@
         }
 
         function confirmReset() {
-            Modal.confirm("PERINGATAN: Semua data transaksi akan dihapus permanen. Lanjutkan?", () => {
-                appData.transactions = [];
-                saveData();
-                showToast("Data transaksi berhasil direset.");
-                switchView('dashboard');
-            }, true);
+            Modal.prompt("KETIK 'RESET' UNTUK MENGHAPUS SEMUA DATA TRANSAKSI:", "Ketik RESET", (pass) => {
+                if (pass === "RESET") {
+                    appData.transactions = [];
+                    saveData();
+                    showToast("Data transaksi berhasil direset.");
+                    switchView('dashboard');
+                } else if (pass !== null && pass !== '') {
+                    Modal.alert("Konfirmasi gagal. Kata kunci salah.");
+                }
+            });
         }
 
         function updateDashboard() {
