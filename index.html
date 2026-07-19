@@ -405,9 +405,14 @@
             if(pieChartInstance) updateDashboard(); 
         }
 
-        // === SISTEM LOGIN ===
-        function checkAccessCode() {
+        // === SISTEM LOGIN DENGAN API LISENSI ===
+        
+        // GANTI URL DI BAWAH INI DENGAN URL GOOGLE APPS SCRIPT ANDA!
+        const LICENSE_API_URL = "Uhttps://script.google.com/macros/s/AKfycbzdBU5CccCK7W1X9GvTjJplgAp-CxezEC-m_vrnKBMa9wo57QwrUjgDJb7cjC6sbHMl/exec";
+
+        async function checkAccessCode() {
             const codeInput = document.getElementById('access-code-input');
+            const btn = document.querySelector('button[onclick="checkAccessCode()"]');
             const code = codeInput.value.trim().toUpperCase();
             
             if(!code) {
@@ -415,14 +420,31 @@
                 return;
             }
 
-            if (VALID_ACCESS_CODES.includes(code)) {
-                localStorage.setItem('KEUANGAN_PRO_ACCESS', 'GRANTED');
-                showToast("Akses Berhasil!", "success");
-                
-                // Tambahkan sedikit delay agar animasi keren terlihat sebelum masuk
-                setTimeout(unlockApp, 800);
-            } else {
-                showToast("Kode Akses tidak valid atau salah!", "error");
+            // Ubah tampilan tombol jadi loading
+            const originalBtnText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Memeriksa Kode...';
+            btn.disabled = true;
+
+            try {
+                // Bertanya ke Google Apps Script apakah kode valid
+                const response = await fetch(`${LICENSE_API_URL}?kode=${code}`);
+                const data = await response.json();
+
+                if (data.valid) {
+                    // Jika sukses
+                    localStorage.setItem('KEUANGAN_PRO_ACCESS', 'GRANTED');
+                    showToast(data.message, "success");
+                    setTimeout(unlockApp, 1000);
+                } else {
+                    // Jika gagal atau sudah terpakai
+                    showToast(data.message, "error");
+                    btn.innerHTML = originalBtnText;
+                    btn.disabled = false;
+                }
+            } catch (error) {
+                showToast("Gagal terhubung ke server lisensi. Coba lagi.", "error");
+                btn.innerHTML = originalBtnText;
+                btn.disabled = false;
             }
         }
 
@@ -434,11 +456,14 @@
         }
 
         function logout() {
-            if(confirm("Yakin ingin mengunci kembali aplikasi?")) {
+            if(confirm("Yakin ingin mengunci kembali aplikasi? (Akses Anda akan dicabut dan Anda memerlukan lisensi baru untuk masuk).")) {
                 localStorage.removeItem('KEUANGAN_PRO_ACCESS');
                 document.getElementById('app-layout').classList.add('hidden');
                 document.getElementById('view-login').style.display = 'flex';
                 document.getElementById('access-code-input').value = '';
+                
+                // Opsional: Untuk keamanan ekstra, refresh halaman
+                window.location.reload();
             }
         }
 
