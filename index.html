@@ -94,7 +94,7 @@
       }
       .motion-slide-up {
         animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        opacity: 0; /* Mulai dari tidak terlihat */
+        opacity: 0;
       }
       .delay-100 {
         animation-delay: 100ms;
@@ -161,9 +161,26 @@
       .card-hover:hover {
         transform: translateY(-4px);
       }
+
+      /* Status Aktif Navigasi */
+      .active-nav {
+        background-color: #f3f4f6;
+        color: #4f46e5 !important;
+        border-right: 3px solid #4f46e5;
+      }
+      .dark .active-nav {
+        background-color: #374151;
+        color: #818cf8 !important;
+        border-right: 3px solid #818cf8;
+      }
+      .active-nav-mobile {
+        color: #4f46e5 !important;
+      }
+      .dark .active-nav-mobile {
+        color: #818cf8 !important;
+      }
     </style>
 
-    <!-- Script inisialisasi tema -->
     <script>
       if (
         localStorage.theme === "dark" ||
@@ -207,9 +224,7 @@
             placeholder="Ketik di sini..."
           />
         </div>
-        <div class="flex gap-3 justify-center" id="modal-buttons">
-          <!-- Tombol dimuat dari JS -->
-        </div>
+        <div class="flex gap-3 justify-center" id="modal-buttons"></div>
       </div>
     </div>
 
@@ -287,9 +302,9 @@
         <div
           class="p-6 flex items-center gap-3 border-b border-gray-100 dark:border-gray-700"
         >
-          <!-- LOGO PNG -->
+          <!-- LOGO GAMBAR -->
           <img
-            src="Logo.png"
+            src="logo.png"
             alt="SakuGenius Logo"
             class="w-8 h-8 object-contain rounded-lg"
             onerror="
@@ -407,6 +422,7 @@
         </header>
 
         <main class="flex-1 overflow-y-auto p-4 md:p-8 pb-24 md:pb-8 relative">
+          <!-- VIEW DASHBOARD -->
           <div
             id="view-dashboard"
             class="view-section active max-w-5xl mx-auto"
@@ -540,6 +556,7 @@
             </div>
           </div>
 
+          <!-- VIEW INPUT -->
           <div id="view-input" class="view-section max-w-2xl mx-auto">
             <div
               class="motion-slide-up bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 md:p-8"
@@ -637,6 +654,7 @@
             </div>
           </div>
 
+          <!-- VIEW DATA -->
           <div id="view-data" class="view-section max-w-4xl mx-auto">
             <div
               class="motion-slide-up bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 md:p-6 min-h-[50vh]"
@@ -674,6 +692,7 @@
             </div>
           </div>
 
+          <!-- VIEW SETTINGS -->
           <div id="view-settings" class="view-section max-w-3xl mx-auto">
             <div
               class="motion-slide-up bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 mb-6"
@@ -861,7 +880,6 @@
           const modalEl = document.getElementById("custom-modal");
           modalEl.classList.remove("hidden");
           modalEl.classList.add("flex");
-          // animasi opasitas
           setTimeout(() => modalEl.classList.add("opacity-100"), 10);
         },
         hide: function () {
@@ -929,11 +947,11 @@
       let pieChartInstance = null;
 
       // === KONFIGURASI LISENSI API ===
-      // TODO: Ganti URL di bawah ini dengan URL Google Apps Script Anda yang terbaru
+      // Ganti URL di bawah ini dengan URL Google Apps Script Anda yang terbaru
       const LICENSE_API_URL =
-        "https://script.google.com/macros/s/AKfycbzQnr0jhp_0QO1i7y6GQ5GY4tSG3EhM55Ot1l0LTfJw1w6N7Yo-_CBc6Y-9CY7RllvY/exec";
+        "https://script.google.com/macros/s/AKfycbxAYA0LTEJv8KKjLkiuauKRuS7ZrhjZHwr2CoerlN0llvbrQL_I69IN5skSUDtpdEaq/exec";
 
-      // === INISIALISASI ===
+      // === INISIALISASI AWAL ===
       document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("input-date").valueAsDate = new Date();
 
@@ -945,7 +963,7 @@
           ? "fas fa-sun"
           : "fas fa-moon";
 
-        // Cek Status Akses Login
+        // Memeriksa Status Akses Terakhir
         if (localStorage.getItem("SAKUGENIUS_ACCESS") === "GRANTED") {
           unlockApp();
         } else {
@@ -1007,7 +1025,7 @@
         btn.disabled = true;
 
         try {
-          // Gunakan GET agar bebas dari masalah CORS
+          // Gunakan query URL parameters murni untuk melewati batas CORS Google
           const urlWithParams = `${LICENSE_API_URL}?kode=${encodeURIComponent(codeInput)}&nama=${encodeURIComponent(nameInput)}&email=${encodeURIComponent(emailInput)}`;
 
           const response = await fetch(urlWithParams, { method: "GET" });
@@ -1029,11 +1047,12 @@
             btn.disabled = false;
           }
         } catch (error) {
-          console.error("Fetch Error:", error);
-          // Fallback Mock jika URL API belum diganti atau internet mati
+          console.error("Fetch Error Detail:", error);
+
+          // Fallback Mock jika terjadi pemblokiran tak terduga (termasuk jaringan buruk)
           if (LICENSE_API_URL.includes("YOUR_SCRIPT_ID")) {
             Modal.alert(
-              "PERHATIAN: Anda belum mengganti URL API Google Script di dalam kode index.html. Fitur login ini berjalan di mode Simulasi untuk demonstrasi.",
+              "PERHATIAN: Anda belum mengganti URL API Google Script. Fitur login ini berjalan di mode Simulasi untuk demonstrasi.",
             );
             localStorage.setItem("SAKUGENIUS_ACCESS", "GRANTED");
             localStorage.setItem("SAKUGENIUS_USER_NAME", nameInput);
@@ -1054,7 +1073,7 @@
         document.getElementById("view-login").style.display = "none";
         document.getElementById("app-layout").classList.remove("hidden");
 
-        // Set Profil Member Area
+        // Set Profil Member Area pada Sidebar
         const userName =
           localStorage.getItem("SAKUGENIUS_USER_NAME") || "Member";
         const userEmail =
