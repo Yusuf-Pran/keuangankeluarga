@@ -868,66 +868,48 @@
       }
     </script>
 
-    <!-- KODE MODULE FIREBASE (SINKRONISASI CLOUD) -->
+    <!-- KODE MODULE FIREBASE (SINKRONISASI CLOUD) FIX URL CDN -->
     <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-      import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-      import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+      // Import dari URL CDN gstatic secara langsung
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
+      import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
+      import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
-      // =========================================================================
-      // PENTING UNTUK PEMILIK APLIKASI (VERCEL):
-      // Agar fitur sinkronisasi berjalan, WAJIB buat project di Firebase Console 
-      // (gratis) dan masukkan kodenya ke dalam variabel firebaseConfig di bawah ini.
-      // =========================================================================
-      
-      const firebaseConfig = typeof __firebase_config !== 'undefined' 
-          ? JSON.parse(__firebase_config) 
-          : {
-              apiKey: "AIzaSyDaGcdbI4QdMj6UZtX1tnsWbUssCu7sd5k",
-              authDomain: "sakugenius-app.firebaseapp.com",
-              projectId: "sakugenius-app",
-              storageBucket: "sakugenius-app.appspot.com",
-              messagingSenderId: "793297223197",
-              appId: "1:793297223197:web:381ecd51ca9b4a1c3510f4"
-            };
+      // Konfigurasi dari gambar Anda
+      const firebaseConfig = {
+          apiKey: "AIzaSyDaGcdbI4QdMj6UZtX1tnsWbUssCu7sd5k",
+          authDomain: "sakugenius-app.firebaseapp.com",
+          projectId: "sakugenius-app",
+          storageBucket: "sakugenius-app.firebaseapp.com",
+          messagingSenderId: "793297223197",
+          appId: "1:793297223197:web:381ecd51ca9b4a1c3510f4"
+      };
 
       let app, auth, db;
-      try {
-          if (firebaseConfig.apiKey !== "ISI_API_KEY_ANDA_DISINI") {
-              app = initializeApp(firebaseConfig);
-              auth = getAuth(app);
-              db = getFirestore(app);
-          } else {
-              console.warn("Konfigurasi Firebase belum diatur. Aplikasi berjalan dalam mode Offline.");
-          }
-      } catch (e) {
-          console.error("Gagal inisialisasi Firebase:", e);
-      }
-
-      const appId = typeof __app_id !== 'undefined' ? __app_id : 'sakugenius-app';
       let currentUser = null;
       let unsubFirestore = null;
 
-      if (auth && db) {
-          const initAuth = async () => {
-              try {
-                  if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                      await signInWithCustomToken(auth, __initial_auth_token);
-                  } else {
-                      await signInAnonymously(auth);
-                  }
-              } catch (e) {
-                  console.error("Auth error:", e);
-              }
-          };
-          initAuth();
+      try {
+          // Inisialisasi Firebase
+          app = initializeApp(firebaseConfig);
+          auth = getAuth(app);
+          db = getFirestore(app);
+          
+          // Login Anonim otomatis untuk mengamankan akses ke database
+          signInAnonymously(auth).catch(error => {
+              console.error("Gagal Anonymous Login:", error);
+          });
 
+          // Pantau status login
           onAuthStateChanged(auth, (user) => {
               currentUser = user;
               if (user && localStorage.getItem("SAKUGENIUS_ACCESS") === "GRANTED") {
                   if (window.setupCloudSync) window.setupCloudSync();
               }
           });
+
+      } catch (e) {
+          console.error("Gagal memuat Firebase Cloud Sync:", e);
       }
 
       window.setupCloudSync = function() {
@@ -935,37 +917,49 @@
           const email = localStorage.getItem("SAKUGENIUS_USER_EMAIL");
           if (!email) return;
           
-          // Identifier ID Dokumen
+          // Buat ID dokumen yang unik berdasarkan email pengguna
+          // Karakter non-alfanumerik diganti agar tidak melanggar aturan Firestore path
           const emailId = email.replace(/[^a-zA-Z0-9]/g, '_');
-          const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'SakuGenius_Data', emailId);
           
+          // Referensi ke dokumen khusus milik email ini
+          const userDocRef = doc(db, 'sakugenius_data_global', emailId);
+          
+          // Matikan pemantauan sebelumnya (jika ada)
           if (unsubFirestore) unsubFirestore();
           
+          // Dengarkan (Listen) setiap ada perubahan data di Cloud
           unsubFirestore = onSnapshot(userDocRef, (docSnap) => {
+              // Tampilkan indikator "Sinkron" berwarna hijau di header
               document.getElementById("cloud-sync-indicator").classList.remove("hidden");
               
               if (docSnap.exists()) {
+                  // Jika ada data di Cloud, paksa UI untuk memuat data tersebut
                   if (window.updateDataFromCloud) window.updateDataFromCloud(docSnap.data());
               } else {
-                  if (window.appData) setDoc(userDocRef, window.appData).catch(e => console.error(e));
+                  // Jika dokumen belum ada (pengguna baru), dorong data lokal awal ke Cloud
+                  if (window.appData) {
+                      setDoc(userDocRef, window.appData).catch(e => console.error("Gagal buat db awal:", e));
+                  }
               }
           }, (error) => {
-              console.error("Cloud Sync Error:", error);
+              console.error("Kesalahan membaca Cloud Sync:", error);
           });
       }
 
+      // Fungsi ini dipanggil dari window (Global) setiap kali pengguna menekan tombol Simpan/Hapus transaksi
       window.firebaseSaveHook = async function(data) {
           if (!currentUser || !db) return;
           const email = localStorage.getItem("SAKUGENIUS_USER_EMAIL");
           if (!email) return;
           
           const emailId = email.replace(/[^a-zA-Z0-9]/g, '_');
-          const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'SakuGenius_Data', emailId);
+          const userDocRef = doc(db, 'sakugenius_data_global', emailId);
           
           try {
+              // Tulis ulang (overwrite) data di Cloud dengan data lokal terbaru
               await setDoc(userDocRef, data);
           } catch (e) {
-              console.error("Gagal simpan ke Cloud:", e);
+              console.error("Gagal sinkron data terbaru ke Cloud:", e);
           }
       }
     </script>
