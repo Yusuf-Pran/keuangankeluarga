@@ -408,6 +408,7 @@
             Dashboard
           </h2>
           <div class="flex items-center gap-4">
+            <!-- Indikator Sinkronisasi Firebase -->
             <div
               id="cloud-sync-indicator"
               class="hidden text-[10px] sm:text-xs font-bold px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800 flex items-center gap-2"
@@ -838,7 +839,7 @@
                     <p class="text-sm font-bold text-gray-800 m-0">
                       LAPORAN MUTASI KEUANGAN
                     </p>
-                    <p
+                    <pAQ
                       class="text-[10px] text-gray-600 mt-1 max-w-[200px] uppercase"
                     >
                       Yth.
@@ -1250,6 +1251,7 @@
         document.getElementById("sidebar-user-name").innerText = userName;
         document.getElementById("sidebar-user-email").innerText = userEmail;
 
+        // Picu sinkronisasi cloud dengan delay sedikit untuk memastikan Firebase termuat
         setTimeout(() => {
           if (window.setupCloudSync) window.setupCloudSync();
         }, 500);
@@ -1272,6 +1274,7 @@
         );
       }
 
+      // FITUR BARU: Toast berwarna merah untuk Error Debugging
       function showToast(message, type = "success") {
         const container = document.getElementById("toast-container");
         const toast = document.createElement("div");
@@ -1291,12 +1294,14 @@
         setTimeout(() => {
           toast.classList.remove("show");
           setTimeout(() => toast.remove(), 400);
-        }, 4000);
+        }, 5000); // Diperpanjang jadi 5 detik untuk baca error
       }
 
+      // === FUNGSI SINKRONISASI UPDATE DATA ===
       window.updateDataFromCloud = function (cloudData) {
         if (JSON.stringify(window.appData) === JSON.stringify(cloudData))
           return;
+
         window.appData = cloudData;
         localStorage.setItem(DB_KEY, JSON.stringify(window.appData));
         updateAllUI();
@@ -1887,7 +1892,7 @@
       } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
       const firebaseConfig = {
-        apiKey: "AIzaSyDaGcdbi4OdMj6UZtX1tnsWbUssCu7sd5k",
+        apiKey: "AIzaSyDaGcDbi4OdMj6UZtX1tnsWbUssCu7sd5k",
         authDomain: "sakugenius-app.firebaseapp.com",
         databaseURL:
           "https://sakugenius-app-default-rtdb.asia-southeast1.firebasedatabase.app",
