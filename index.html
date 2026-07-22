@@ -1638,26 +1638,29 @@
       }
     </script>
 
-    <!-- KODE MODULE FIREBASE SINKRONISASI (FIX TYPO & ADD DEBUG TOAST) -->
+    <!-- KODE MODULE FIREBASE SINKRONISASI -->
     <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+      // Menggunakan SDK Firebase versi 12.16.0 sesuai standar terbaru
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
       import {
         getAuth,
         signInAnonymously,
         onAuthStateChanged,
-      } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+      } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
       import {
         getFirestore,
         doc,
         onSnapshot,
         setDoc,
-      } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+      } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
       const firebaseConfig = {
-        apiKey: "AIzaSyDaGcdbi4OdMj6UZtX1tnsWbUssCu7sd5k", // <--- TYPO TELAH DIPERBAIKI (bi4Od)
+        apiKey: "AIzaSyDaGcDbi4OdMj6UZtX1tnsWbUssCu7sd5k",
         authDomain: "sakugenius-app.firebaseapp.com",
+        databaseURL:
+          "https://sakugenius-app-default-rtdb.asia-southeast1.firebasedatabase.app",
         projectId: "sakugenius-app",
-        storageBucket: "sakugenius-app.firebasestorage.app", // <--- BUCKET SUDAH SESUAI GAMBAR ANDA
+        storageBucket: "sakugenius-app.firebasestorage.app",
         messagingSenderId: "793297223197",
         appId: "1:793297223197:web:381ecd51ca9b4a1c3510f4",
       };
@@ -1668,14 +1671,9 @@
         auth = getAuth(app);
         db = getFirestore(app);
 
-        signInAnonymously(auth)
-          .then(() => {
-            console.log("Firebase Auth Sukses!");
-          })
-          .catch((error) => {
-            console.error("Gagal Login Anonim Firebase:", error);
-            showToast("Gagal terhubung ke Cloud: " + error.message, "error"); // <--- MUNCUL ERROR JIKA API KEY SALAH
-          });
+        signInAnonymously(auth).catch((error) => {
+          console.error("Gagal Login Anonim Firebase:", error);
+        });
 
         onAuthStateChanged(auth, (user) => {
           window.currentUser = user;
@@ -1685,7 +1683,6 @@
         });
       } catch (e) {
         console.error("Gagal inisialisasi Firebase:", e);
-        showToast("Sistem Cloud Gagal Dimuat: " + e.message, "error");
       }
 
       window.setupCloudSync = function () {
@@ -1711,19 +1708,12 @@
             } else {
               if (window.appData) {
                 const cleanData = JSON.parse(JSON.stringify(window.appData));
-                setDoc(userDocRef, cleanData).catch((e) => {
-                  console.error(e);
-                  showToast(
-                    "Gagal menyimpan data awal ke Cloud: " + e.message,
-                    "error",
-                  );
-                });
+                setDoc(userDocRef, cleanData).catch((e) => console.error(e));
               }
             }
           },
           (error) => {
             console.error("Cloud Sync Error:", error);
-            showToast("Koneksi Database Terputus: " + error.message, "error"); // <--- MUNCUL ERROR JIKA RULES SALAH
           },
         );
       };
@@ -1741,7 +1731,6 @@
           await setDoc(userDocRef, cleanData);
         } catch (e) {
           console.error("Gagal simpan ke Cloud:", e);
-          showToast("Gagal menyimpan ke Cloud: " + e.message, "error");
         }
       };
     </script>
