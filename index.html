@@ -167,7 +167,8 @@
               <p id="sidebar-user-email" class="text-[10px] text-gray-500 truncate w-32">Premium Member</p>
             </div>
           </div>
-          <button onclick="logout()" class="btn-press flex-shrink-0 text-gray-400 hover:text-red-500 p-2 transition-colors" title="Keluar"><i class="fas fa-sign-out-alt"></i></button>
+          <!-- Tombol Logout Desktop (Diberi id agar bisa disembunyikan/diubah) -->
+          <button onclick="logout()" id="btn-logout-desktop" class="btn-press flex-shrink-0 text-gray-400 hover:text-red-500 p-2 transition-colors" title="Keluar"><i class="fas fa-sign-out-alt"></i></button>
         </div>
       </aside>
 
@@ -176,11 +177,11 @@
         <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm px-6 py-4 flex justify-between items-center z-10 transition-colors">
           <h2 id="header-title" class="text-xl font-bold text-gray-800 dark:text-white">Dashboard</h2>
           <div class="flex items-center gap-4">
-            <div id="cloud-sync-indicator" class="hidden text-xs font-bold px-3 py-1.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800 flex items-center gap-2">
-              <i class="fas fa-cloud text-green-500"></i> Sinkron
+            <!-- Indikator Sinkronisasi Firebase -->
+            <div id="cloud-sync-indicator" class="hidden text-[10px] sm:text-xs font-bold px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800 flex items-center gap-2">
+              <i class="fas fa-cloud text-green-500"></i> <span class="hidden sm:inline">Sinkron</span>
             </div>
-            <button onclick="toggleTheme()" class="btn-press w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center"><i id="theme-icon" class="fas fa-moon"></i></button>
-            <button onclick="logout()" class="btn-press md:hidden w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 flex items-center justify-center"><i class="fas fa-sign-out-alt"></i></button>
+            <button onclick="toggleTheme()" class="btn-press w-10 h-10 flex-shrink-0 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center"><i id="theme-icon" class="fas fa-moon"></i></button>
           </div>
         </header>
 
@@ -321,10 +322,20 @@
               </form>
               <div id="category-list" class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-2"></div>
             </div>
+            
             <div class="motion-slide-up delay-100 bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-100 dark:border-red-900/50 shadow-sm p-6 text-center">
               <h2 class="text-lg font-bold text-red-700 dark:text-red-400 mb-2">Mulai Bulan Baru (Reset)</h2>
               <p class="text-sm text-red-600 dark:text-red-300 mb-4">Hapus semua data transaksi dan mulai dari awal. Kategori & Budget tetap aman.</p>
               <button onclick="confirmReset()" class="btn-press bg-red-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-red-700 transition-colors shadow-lg shadow-red-200 dark:shadow-none"><i class="fas fa-trash-alt mr-2"></i> Kosongkan Data Transaksi</button>
+            </div>
+
+            <!-- TOMBOL KELUAR & KUNCI APLIKASI (KHUSUS MOBILE FALLBACK) -->
+            <div class="md:hidden motion-slide-up delay-200 bg-gray-50 dark:bg-gray-700/30 rounded-2xl border border-gray-200 dark:border-gray-600 shadow-sm p-6 text-center mt-6">
+                <h2 class="text-lg font-bold text-gray-800 dark:text-gray-200 mb-2">Keamanan</h2>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Kunci kembali aplikasi ini jika sedang tidak digunakan.</p>
+                <button onclick="logout()" class="btn-press bg-gray-800 dark:bg-gray-600 text-white font-bold py-3 px-8 rounded-xl hover:bg-gray-900 transition-colors shadow-md w-full">
+                    <i class="fas fa-lock mr-2"></i> Keluar & Kunci Aplikasi
+                </button>
             </div>
           </div>
         </main>
@@ -422,9 +433,6 @@
       window.appData = JSON.parse(localStorage.getItem(DB_KEY)) || defaultData;
       let pieChartInstance = null;
 
-      // =========================================================================
-      // URL API GOOGLE APPS SCRIPT ANDA
-      // =========================================================================
       const LICENSE_API_URL = "https://script.google.com/macros/s/AKfycbxAYA0LTEJv8KKjLkiuauKRuS7ZrhjZHwr2CoerlN0llvbrQL_I69IN5skSUDtpdEaq/exec";
 
       document.addEventListener("DOMContentLoaded", () => {
@@ -512,8 +520,10 @@
         document.getElementById("sidebar-user-name").innerText = userName;
         document.getElementById("sidebar-user-email").innerText = userEmail;
 
-        // Picu sinkronisasi cloud jika firebase aktif
-        if (window.setupCloudSync) window.setupCloudSync();
+        // Picu sinkronisasi cloud dengan delay sedikit untuk memastikan Firebase termuat
+        setTimeout(() => {
+          if (window.setupCloudSync) window.setupCloudSync();
+        }, 500);
 
         updateAllUI();
         switchView("dashboard");
@@ -544,6 +554,9 @@
 
       // === FUNGSI SINKRONISASI UPDATE DATA ===
       window.updateDataFromCloud = function(cloudData) {
+        // Cek agar tidak memicu re-render / overwrite yang tidak perlu jika data sama
+        if (JSON.stringify(window.appData) === JSON.stringify(cloudData)) return; 
+        
         window.appData = cloudData;
         localStorage.setItem(DB_KEY, JSON.stringify(window.appData));
         updateAllUI();
@@ -868,98 +881,80 @@
       }
     </script>
 
-    <!-- KODE MODULE FIREBASE (SINKRONISASI CLOUD) FIX URL CDN -->
+    <!-- KODE MODULE FIREBASE SINKRONISASI -->
     <script type="module">
-      // Import dari URL CDN gstatic secara langsung
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
-      import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
-      import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
-
-      // Konfigurasi dari gambar Anda
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+      import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+      import { getFirestore, doc, onSnapshot, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+      
       const firebaseConfig = {
           apiKey: "AIzaSyDaGcdbI4QdMj6UZtX1tnsWbUssCu7sd5k",
           authDomain: "sakugenius-app.firebaseapp.com",
           projectId: "sakugenius-app",
-          storageBucket: "sakugenius-app.firebaseapp.com",
+          storageBucket: "sakugenius-app.firebasestorage.app",
           messagingSenderId: "793297223197",
           appId: "1:793297223197:web:381ecd51ca9b4a1c3510f4"
       };
 
       let app, auth, db;
-      let currentUser = null;
-      let unsubFirestore = null;
-
       try {
-          // Inisialisasi Firebase
           app = initializeApp(firebaseConfig);
           auth = getAuth(app);
           db = getFirestore(app);
           
-          // Login Anonim otomatis untuk mengamankan akses ke database
           signInAnonymously(auth).catch(error => {
-              console.error("Gagal Anonymous Login:", error);
+              console.error("Gagal Login Anonim Firebase:", error);
           });
 
-          // Pantau status login
           onAuthStateChanged(auth, (user) => {
-              currentUser = user;
+              window.currentUser = user;
               if (user && localStorage.getItem("SAKUGENIUS_ACCESS") === "GRANTED") {
                   if (window.setupCloudSync) window.setupCloudSync();
               }
           });
-
       } catch (e) {
-          console.error("Gagal memuat Firebase Cloud Sync:", e);
+          console.error("Gagal inisialisasi Firebase:", e);
       }
 
       window.setupCloudSync = function() {
-          if (!currentUser || !db) return;
+          if (!window.currentUser || !db) return;
           const email = localStorage.getItem("SAKUGENIUS_USER_EMAIL");
           if (!email) return;
           
-          // Buat ID dokumen yang unik berdasarkan email pengguna
-          // Karakter non-alfanumerik diganti agar tidak melanggar aturan Firestore path
           const emailId = email.replace(/[^a-zA-Z0-9]/g, '_');
+          const userDocRef = doc(db, 'sakugenius_sync', emailId);
           
-          // Referensi ke dokumen khusus milik email ini
-          const userDocRef = doc(db, 'sakugenius_data_global', emailId);
+          if (window.unsubFirestore) window.unsubFirestore();
           
-          // Matikan pemantauan sebelumnya (jika ada)
-          if (unsubFirestore) unsubFirestore();
-          
-          // Dengarkan (Listen) setiap ada perubahan data di Cloud
-          unsubFirestore = onSnapshot(userDocRef, (docSnap) => {
-              // Tampilkan indikator "Sinkron" berwarna hijau di header
+          window.unsubFirestore = onSnapshot(userDocRef, (docSnap) => {
               document.getElementById("cloud-sync-indicator").classList.remove("hidden");
               
               if (docSnap.exists()) {
-                  // Jika ada data di Cloud, paksa UI untuk memuat data tersebut
                   if (window.updateDataFromCloud) window.updateDataFromCloud(docSnap.data());
               } else {
-                  // Jika dokumen belum ada (pengguna baru), dorong data lokal awal ke Cloud
                   if (window.appData) {
-                      setDoc(userDocRef, window.appData).catch(e => console.error("Gagal buat db awal:", e));
+                      const cleanData = JSON.parse(JSON.stringify(window.appData));
+                      setDoc(userDocRef, cleanData).catch(e => console.error(e));
                   }
               }
           }, (error) => {
-              console.error("Kesalahan membaca Cloud Sync:", error);
+              console.error("Cloud Sync Error:", error);
           });
       }
 
-      // Fungsi ini dipanggil dari window (Global) setiap kali pengguna menekan tombol Simpan/Hapus transaksi
       window.firebaseSaveHook = async function(data) {
-          if (!currentUser || !db) return;
+          if (!window.currentUser || !db) return;
           const email = localStorage.getItem("SAKUGENIUS_USER_EMAIL");
           if (!email) return;
           
           const emailId = email.replace(/[^a-zA-Z0-9]/g, '_');
-          const userDocRef = doc(db, 'sakugenius_data_global', emailId);
+          const userDocRef = doc(db, 'sakugenius_sync', emailId);
           
           try {
-              // Tulis ulang (overwrite) data di Cloud dengan data lokal terbaru
-              await setDoc(userDocRef, data);
+              const cleanData = JSON.parse(JSON.stringify(data));
+              await setDoc(userDocRef, cleanData);
           } catch (e) {
-              console.error("Gagal sinkron data terbaru ke Cloud:", e);
+              console.error("Gagal simpan ke Cloud:", e);
           }
       }
     </script>
