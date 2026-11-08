@@ -523,7 +523,8 @@ window.setSyncState = function (state) {
 };
 
 function formatRupiah(angka) {
-  return "Rp " + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  const sign = angka < 0 ? "−" : "";
+  return sign + "Rp " + Math.abs(angka).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
 function switchView(viewName) {
@@ -1075,14 +1076,14 @@ function monthTotals(ym) {
 function renderDelta(el, now, before, goodWhenUp) {
   if (!el) return;
   if (!before) {
-    el.className = "text-xs mt-2 text-gray-400";
-    el.innerText = now ? "Belum ada data bulan lalu" : "";
+    el.className = "text-xs mt-2 min-h-[1rem] text-gray-400";
+    el.innerText = now ? "Belum ada data bulan lalu" : "Belum ada transaksi bulan ini";
     return;
   }
   const pct = Math.round(((now - before) / before) * 100);
   const up = pct >= 0;
   const good = up === goodWhenUp;
-  el.className = `text-xs mt-2 font-semibold ${
+  el.className = `text-xs mt-2 min-h-[1rem] font-semibold ${
     pct === 0
       ? "text-gray-400"
       : good
