@@ -589,6 +589,7 @@ function updateAllUI() {
   updateCategoryDropdown();
   updateCategoryList();
   updateTransactionList();
+  renderMonthlyHistory();
   updateDashboard();
   if (window.renderExtraFeatures) window.renderExtraFeatures();
 }
@@ -1147,6 +1148,68 @@ function shiftMonth(ym, delta) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
+// === HISTORI BULANAN: pemasukan, pengeluaran, dan sisa tiap bulan ===
+let monthlyHistoryAll = false;
+
+function toggleMonthlyHistory() {
+  monthlyHistoryAll = !monthlyHistoryAll;
+  renderMonthlyHistory();
+}
+
+function openMonth(ym) {
+  window.selectedMonth = ym;
+  updateAllUI();
+  const list = document.getElementById("transaction-list");
+  if (list) list.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
+}
+
+function renderMonthlyHistory() {
+  const body = document.getElementById("monthly-history-body");
+  if (!body) return;
+  const months = {};
+  window.appData.transactions.forEach((t) => {
+    if (!t.tanggal) return;
+    const ym = t.tanggal.slice(0, 7);
+    const m = (months[ym] = months[ym] || { income: 0, expense: 0 });
+    if (t.jenis === "Pemasukan") m.income += t.nominal;
+    else m.expense += t.nominal;
+  });
+  const d = new Date();
+  const thisMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  if (!months[thisMonth]) months[thisMonth] = { income: 0, expense: 0 };
+  const keys = Object.keys(months).sort().reverse();
+  const shown = monthlyHistoryAll ? keys : keys.slice(0, 6);
+
+  body.innerHTML = shown
+    .map((ym) => {
+      const m = months[ym];
+      const sisa = m.income - m.expense;
+      const label = new Date(ym + "-01T00:00:00").toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+      const active = ym === window.selectedMonth;
+      return `<button type="button" onclick="openMonth('${ym}')" class="w-full text-left flex items-center gap-3 px-3 py-3 -mx-1 rounded-xl transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/30 ${active ? "bg-indigo-50/70 dark:bg-indigo-950/30" : ""}">
+        <div class="min-w-0 flex-1">
+          <p class="font-semibold text-sm text-gray-800 dark:text-gray-100">${label}${ym === thisMonth ? ' <span class="ml-1 text-[10px] font-bold text-primary dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-900/50 px-1.5 py-0.5 rounded align-middle">berjalan</span>' : ""}</p>
+          <p class="num text-xs mt-0.5 flex flex-wrap gap-x-3"><span class="text-emerald-600 dark:text-emerald-400 whitespace-nowrap">+${formatRupiah(m.income)}</span><span class="text-rose-600 dark:text-rose-400 whitespace-nowrap">-${formatRupiah(m.expense)}</span></p>
+        </div>
+        <div class="text-right shrink-0">
+          <p class="text-[10px] uppercase tracking-wider text-gray-400">Sisa</p>
+          <p class="num text-sm font-bold whitespace-nowrap ${sisa >= 0 ? "text-gray-900 dark:text-white" : "text-rose-600 dark:text-rose-400"}">${formatRupiah(sisa)}</p>
+        </div>
+        <i class="fas fa-chevron-right text-xs text-gray-300 dark:text-gray-600"></i>
+      </button>`;
+    })
+    .join("");
+
+  const total = keys.reduce((s, k) => s + months[k].income - months[k].expense, 0);
+  document.getElementById("monthly-history-foot").innerHTML = `
+    <span class="text-xs font-bold uppercase tracking-wider text-gray-500">Total sisa semua bulan</span>
+    <span class="num font-black whitespace-nowrap ${total >= 0 ? "text-primary dark:text-indigo-300" : "text-rose-600"}">${formatRupiah(total)}</span>`;
+
+  const more = document.getElementById("monthly-history-more");
+  more.classList.toggle("hidden", keys.length <= 6);
+  more.textContent = monthlyHistoryAll ? "Tampilkan 6 bulan terakhir" : `Tampilkan semua (${keys.length} bulan)`;
+}
+
 function monthTotals(ym) {
   let income = 0,
     expense = 0;
@@ -1198,12 +1261,13 @@ function updateDashboard() {
 
   animateRupiah(document.getElementById("dash-income"), now.income);
   animateRupiah(document.getElementById("dash-expense"), now.expense);
-  animateRupiah(document.getElementById("dash-balance"), totalSaldoAllTime);
+  // Sisa dihitung per bulan: mulai dari 0 setiap bulan baru
+  animateRupiah(document.getElementById("dash-balance"), now.income - now.expense);
   renderDelta(document.getElementById("dash-income-delta"), now.income, prev.income, true);
   renderDelta(document.getElementById("dash-expense-delta"), now.expense, prev.expense, false);
-  const net = now.income - now.expense;
+  const prevNet = prev.income - prev.expense;
   document.getElementById("dash-net-month").innerText =
-    `Selisih bulan ini: ${net >= 0 ? "+" : "−"}${formatRupiah(Math.abs(net))}`;
+    `Sisa bulan lalu: ${formatRupiah(prevNet)} (lihat di Riwayat)`;
 
   renderBudgetTable(catDataBulanIni);
   renderTrendChart();
