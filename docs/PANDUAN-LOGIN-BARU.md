@@ -22,16 +22,17 @@ Kerjakan langkah di bawah **berurutan dalam satu waktu** (sekitar 30 menit). Scr
 
 ## 2. Siapkan Google Sheet lisensi
 
-Script mencari tab bernama **`Lisensi`** (bisa diubah lewat Script Property `SHEET_NAME`). Baris 1 berisi judul kolom. Kolom yang belum ada akan **ditambahkan otomatis** oleh script di sebelah kanan:
+Script mencari tab bernama **`Lisensi`** (bisa diubah lewat Script Property `SHEET_NAME`). Baris 1 berisi judul kolom, huruf besar/kecil tidak berpengaruh. Kolom yang sudah ada (**KODE, LISENSI, STATUS, NAMA, EMAIL, SOLD**) tetap dipakai, dan kolom baru ditambahkan **otomatis** di sebelah kanan:
 
 | Kolom | Isi |
 | --- | --- |
-| Kode | Kode lisensi, misalnya `SG-7KQ2-M9XA` (diisi admin) |
-| Status | `Dipakai` setelah kode dipakai mendaftar |
-| Nama, Email, No HP | Diisi otomatis saat pembeli mendaftar |
-| UID | ID akun Firebase, diisi otomatis |
-| Status Akun | `Menunggu`, `Disetujui`, atau `Ditolak` |
-| Tanggal Daftar, Tanggal Diputuskan | Diisi otomatis |
+| KODE | Kode lisensi yang diketik pembeli. Jika kodenya ada di kolom lain (misalnya LISENSI), isi Script Property `KOLOM_KODE` dengan judul kolom itu |
+| STATUS | Diisi `Dipakai` setelah kode dipakai mendaftar |
+| NAMA, EMAIL | Diisi otomatis saat pembeli mendaftar |
+| LISENSI, SOLD | Tidak diubah oleh script |
+| NO HP, UID | Kolom baru, diisi otomatis |
+| STATUS AKUN | Kolom baru: `Menunggu`, `Disetujui`, atau `Ditolak` |
+| TANGGAL DAFTAR, TANGGAL DIPUTUSKAN | Kolom baru, diisi otomatis |
 
 Catatan untuk **pembeli lama**: jika kolom **Email** pada baris kode sudah terisi (dari sistem lama) dan **UID** masih kosong, pembeli itu bisa mendaftar memakai kode yang sama, **asalkan emailnya sama**. Data keuangan lama mereka ikut dipindahkan otomatis.
 

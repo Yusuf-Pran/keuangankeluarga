@@ -13,13 +13,16 @@
  *   TELEGRAM_CHAT_ID         chat id Telegram admin (penerima notifikasi)
  *   SHEET_ID                 (opsional) ID Google Sheet, jika script tidak menempel di Sheet
  *   SHEET_NAME               (opsional) nama tab, default "Lisensi"
+ *   KOLOM_KODE               (opsional) judul kolom berisi kode lisensi, default "KODE"
  */
 
+// Judul kolom di baris 1 (huruf besar/kecil tidak berpengaruh).
+// KODE, STATUS, NAMA, EMAIL sudah ada di sheet; sisanya ditambahkan otomatis.
 var HEADERS = {
-  kode: 'Kode',
-  status: 'Status',
-  nama: 'Nama',
-  email: 'Email',
+  kode: 'KODE',
+  status: 'STATUS',
+  nama: 'NAMA',
+  email: 'EMAIL',
   phone: 'No HP',
   uid: 'UID',
   akun: 'Status Akun',
@@ -318,12 +321,13 @@ function sheet_() {
 /** Peta nama kolom -> nomor kolom; kolom yang belum ada ditambahkan di kanan. */
 function columns_(sh) {
   var lastCol = Math.max(sh.getLastColumn(), 1);
-  var header = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(function (h) { return String(h).trim(); });
+  var header = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(function (h) { return String(h).trim().toUpperCase(); });
   var map = {};
   Object.keys(HEADERS).forEach(function (key) {
-    var idx = header.indexOf(HEADERS[key]);
+    var title = key === 'kode' && prop_('KOLOM_KODE') ? prop_('KOLOM_KODE') : HEADERS[key];
+    var idx = header.indexOf(String(title).toUpperCase());
     if (idx === -1) {
-      header.push(HEADERS[key]);
+      header.push(String(title).toUpperCase());
       idx = header.length - 1;
       sh.getRange(1, idx + 1).setValue(HEADERS[key]);
     }
