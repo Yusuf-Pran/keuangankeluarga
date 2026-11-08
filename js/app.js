@@ -720,90 +720,161 @@ function resetForm() {
   updateCategoryDropdown();
 }
 
-// === FITUR EKSPOR PDF ESTETIK (BCA STYLE & A4 PRECISE) ===
-async function downloadPDF() {
-  const txsBulanIni = window.appData.transactions.filter((t) =>
-    t.tanggal.startsWith(window.selectedMonth),
+// === LAPORAN PDF: PRATINJAU DULU, LALU DOWNLOAD ===
+let pdfMonth = null;
+
+// Isi template laporan untuk bulan ym (YYYY-MM). Mengembalikan jumlah transaksi.
+function fillPdfTemplate(ym) {
+  const txs = window.appData.transactions
+    .filter((t) => t.tanggal && t.tanggal.startsWith(ym))
+    .sort((a, b) => a.tanggal.localeCompare(b.tanggal));
+
+  const monthName = new Date(ym + "-01T00:00:00")
+    .toLocaleDateString("id-ID", { month: "long", year: "numeric" })
+    .toUpperCase();
+  document.getElementById("pdf-month-title").innerText = monthName;
+  document.getElementById("pdf-print-date").innerText = new Date().toLocaleString("id-ID");
+
+  const userName = localStorage.getItem("SAKUGENIUS_USER_NAME") || "Member SakuGenius";
+  document.getElementById("pdf-user-name").innerText = userName.toUpperCase();
+  document.getElementById("pdf-user-email").innerText =
+    localStorage.getItem("SAKUGENIUS_USER_EMAIL") || "-";
+
+  // Ringkasan
+  const totals = monthTotals(ym);
+  let balance = 0;
+  window.appData.transactions.forEach((t) => {
+    balance += t.jenis === "Pemasukan" ? t.nominal : -t.nominal;
+  });
+  document.getElementById("pdf-total-in").innerText = formatRupiah(totals.income);
+  document.getElementById("pdf-total-out").innerText = formatRupiah(totals.expense);
+  document.getElementById("pdf-balance").innerText = formatRupiah(balance);
+
+  // Monitor anggaran: kategori pengeluaran yang punya budget
+  const spent = {};
+  txs.forEach((t) => {
+    if (t.jenis !== "Pemasukan") spent[t.kategori] = (spent[t.kategori] || 0) + t.nominal;
+  });
+  const budgets = window.appData.categories.filter(
+    (c) => c.jenis === "Pengeluaran" && Number(c.budget) > 0,
   );
-  if (txsBulanIni.length === 0) {
-    showToast(
-      `Tidak ada data transaksi di bulan ${window.selectedMonth}.`,
-      "warning",
-    );
+  const grid = document.getElementById("pdf-budget-grid");
+  grid.innerHTML = budgets
+    .map((c) => {
+      const used = spent[c.nama] || 0;
+      const pct = (used / c.budget) * 100;
+      const color = pct > 100 ? "#dc2626" : pct >= 100 ? "#f59e0b" : "#1f2937";
+      return `
+        <div style="padding: 10px 0 8px;">
+          <div style="display:flex; justify-content:space-between; gap:8px; font-size:10px;">
+            <span style="font-weight:700; text-transform:uppercase;">${escapeHtml(c.nama)}</span>
+            <span style="color:#4b5563; white-space:nowrap;">${formatRupiah(used)} / ${formatRupiah(Number(c.budget))}</span>
+          </div>
+          <div style="height:5px; background:#eef0f4; margin-top:7px;">
+            <div style="height:5px; width:${Math.min(pct, 100).toFixed(1)}%; background:${color};"></div>
+          </div>
+        </div>`;
+    })
+    .join("");
+  document.getElementById("pdf-budget-section").style.display = budgets.length ? "" : "none";
+
+  // Tabel mutasi
+  const tbody = document.getElementById("pdf-tx-table-body");
+  const cell = "padding-top: 8px; padding-bottom: 8px;";
+  tbody.innerHTML = txs.length
+    ? txs
+        .map((t) => {
+          const isIncome = t.jenis === "Pemasukan";
+          const [, mm, dd] = t.tanggal.split("-");
+          const amount = formatRupiah(t.nominal).replace("Rp ", "");
+          return `<tr>
+            <td class="py-2 pr-2 align-top" style="${cell}">${dd}/${mm}</td>
+            <td class="py-2 pr-2 align-top" style="${cell}">
+              <span class="uppercase font-bold">${escapeHtml(t.kategori)}</span><br>
+              <span class="text-gray-600">${escapeHtml(t.nama)}</span>
+            </td>
+            <td class="py-2 text-right align-top" style="${cell}">${isIncome ? amount : ""}</td>
+            <td class="py-2 text-right align-top" style="${cell}">${isIncome ? "" : amount}</td>
+          </tr>`;
+        })
+        .join("")
+    : `<tr><td colspan="4" class="text-center text-gray-500" style="padding: 24px 0;">Tidak ada transaksi di bulan ini.</td></tr>`;
+
+  return txs.length;
+}
+
+function openPdfPreview() {
+  const modal = document.getElementById("pdf-preview-modal");
+  const month = window.selectedMonth || new Date().toISOString().slice(0, 7);
+  document.getElementById("pdf-preview-month").value = month;
+  modal.classList.remove("hidden");
+  modal.classList.add("flex");
+  renderPdfPreview(month);
+  window.addEventListener("resize", fitPdfPreview);
+  document.addEventListener("keydown", pdfPreviewKeys);
+}
+
+function closePdfPreview() {
+  const modal = document.getElementById("pdf-preview-modal");
+  modal.classList.add("hidden");
+  modal.classList.remove("flex");
+  window.removeEventListener("resize", fitPdfPreview);
+  document.removeEventListener("keydown", pdfPreviewKeys);
+}
+
+function pdfPreviewKeys(e) {
+  if (e.key === "Escape") closePdfPreview();
+}
+
+function renderPdfPreview(ym) {
+  if (!ym) return;
+  pdfMonth = ym;
+  const count = fillPdfTemplate(ym);
+  const page = document.getElementById("pdf-preview-page");
+  const clone = document.getElementById("pdf-report-template").cloneNode(true);
+  clone.removeAttribute("id");
+  clone.querySelectorAll("[id]").forEach((el) => el.removeAttribute("id"));
+  page.innerHTML = "";
+  page.appendChild(clone);
+  const btn = document.getElementById("pdf-download-btn");
+  btn.disabled = count === 0;
+  btn.title = count === 0 ? "Tidak ada transaksi di bulan ini" : "";
+  fitPdfPreview();
+  const scroller = document.getElementById("pdf-preview-scroll");
+  scroller.scrollTop = 0;
+}
+
+// Kecilkan halaman 800px supaya muat di layar HP
+function fitPdfPreview() {
+  const scroller = document.getElementById("pdf-preview-scroll");
+  const sizer = document.getElementById("pdf-preview-sizer");
+  const page = document.getElementById("pdf-preview-page");
+  const style = getComputedStyle(scroller);
+  const avail =
+    scroller.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+  const scale = Math.min(1, avail / 800);
+  page.style.transform = `scale(${scale})`;
+  sizer.style.width = 800 * scale + "px";
+  sizer.style.height = page.offsetHeight * scale + "px";
+}
+
+async function downloadPDF() {
+  const ym = pdfMonth || window.selectedMonth;
+  const btn = document.getElementById("pdf-download-btn");
+  const originalText = btn.innerHTML;
+  if (fillPdfTemplate(ym) === 0) {
+    showToast(`Tidak ada data transaksi di bulan ${ym}.`, "warning");
     return;
   }
-
-  const btn = document.querySelector('button[onclick="downloadPDF()"]');
-  const originalText = btn.innerHTML;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyiapkan...';
   btn.disabled = true;
 
+  const wrapper = document.getElementById("pdf-wrapper");
   try {
-    const wrapper = document.getElementById("pdf-wrapper");
-    const template = document.getElementById("pdf-report-template");
-
-    // Format text bulan
-    const dateObj = new Date(window.selectedMonth + "-01");
-    const monthName = dateObj
-      .toLocaleDateString("id-ID", { month: "long", year: "numeric" })
-      .toUpperCase();
-    document.getElementById("pdf-month-title").innerText = monthName;
-    document.getElementById("pdf-print-date").innerText =
-      new Date().toLocaleString("id-ID");
-
-    // User Info
-    const userName =
-      localStorage.getItem("SAKUGENIUS_USER_NAME") || "MEMBER SAKUGENIUS";
-    document.getElementById("pdf-user-name").innerText =
-      userName.toUpperCase();
-    document.getElementById("pdf-user-email").innerText =
-      localStorage.getItem("SAKUGENIUS_USER_EMAIL") || "-";
-
-    // Ambil angka dari Dashboard HTML
-    document.getElementById("pdf-total-in").innerText =
-      document.getElementById("dash-income").innerText;
-    document.getElementById("pdf-total-out").innerText =
-      document.getElementById("dash-expense").innerText;
-    document.getElementById("pdf-balance").innerText =
-      document.getElementById("dash-balance").innerText;
-
-    // 2. Populate Tabel Transaksi
-    const tbody = document.getElementById("pdf-tx-table-body");
-    tbody.innerHTML = "";
-
-    // Sort Terlama ke Terbaru
-    const sortedTxs = [...txsBulanIni].sort(
-      (a, b) => new Date(a.tanggal) - new Date(b.tanggal),
-    );
-
-    sortedTxs.forEach((t) => {
-      const isIncome = t.jenis === "Pemasukan";
-      const d = new Date(t.tanggal);
-      const dateBcaFmt =
-        String(d.getDate()).padStart(2, "0") +
-        "/" +
-        String(d.getMonth() + 1).padStart(2, "0");
-
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td class="py-2 pr-2 align-top" style="padding-top: 8px; padding-bottom: 8px;">${dateBcaFmt}</td>
-        <td class="py-2 pr-2 align-top" style="padding-top: 8px; padding-bottom: 8px;">
-          <span class="uppercase font-bold">${escapeHtml(t.kategori)}</span><br>
-          <span class="text-gray-600">${escapeHtml(t.nama)}</span>
-        </td>
-        <td class="py-2 text-right align-top" style="padding-top: 8px; padding-bottom: 8px;">${isIncome ? formatRupiah(t.nominal).replace("Rp ", "") : ""}</td>
-        <td class="py-2 text-right align-top" style="padding-top: 8px; padding-bottom: 8px;">${!isIncome ? formatRupiah(t.nominal).replace("Rp ", "") : ""}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-
-    // Munculkan wrapper untuk di capture. Kita pastikan koordinat x:0 y:0
     wrapper.style.display = "block";
-
-    // Konfigurasi html2pdf dengan ukuran window 800px konstan
     const opt = {
       margin: 5,
-      filename: `Mutasi_Rekening_SakuGenius_${window.selectedMonth}.pdf`,
+      filename: `Laporan_SakuGenius_${ym}.pdf`,
       image: { type: "jpeg", quality: 1 },
       html2canvas: {
         scale: 2,
@@ -815,15 +886,15 @@ async function downloadPDF() {
         windowWidth: 785,
       },
       jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+      pagebreak: { mode: ["css", "legacy"], avoid: ["tr"] },
     };
-
-    await html2pdf().set(opt).from(template).save();
-    showToast("Mutasi PDF berhasil diunduh!", "success");
+    await html2pdf().set(opt).from(document.getElementById("pdf-report-template")).save();
+    showToast("Laporan PDF berhasil diunduh!", "success");
   } catch (e) {
     console.error(e);
     showToast("Gagal membuat PDF.", "error");
   } finally {
-    document.getElementById("pdf-wrapper").style.display = "none";
+    wrapper.style.display = "none";
     btn.innerHTML = originalText;
     btn.disabled = false;
   }
