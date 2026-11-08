@@ -162,3 +162,34 @@ input[type="date"]::-webkit-date-and-time-value {
 .dark .active-nav-mobile {
   color: #818cf8 !important;
 }
+
+/* Tombol tambah (tengah) di navigasi HP tetap putih saat aktif */
+.nav-fab.active-nav-mobile,
+.dark .nav-fab.active-nav-mobile {
+  color: #fff !important;
+}
+
+/* Angka uang rata kanan-kiri dengan lebar digit sama */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Chip filter jenis transaksi */
+.type-chip {
+  color: #6b7280;
+  transition: background-color 0.2s, color 0.2s, box-shadow 0.2s;
+}
+.type-chip.active {
+  background: #fff;
+  color: #4f46e5;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+.dark .type-chip.active {
+  background: #374151;
+  color: #a5b4fc;
+}
+
+/* Progress bar budget */
+.budget-bar {
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
