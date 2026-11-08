@@ -554,6 +554,7 @@ function switchView(viewName) {
     input: "Catat Transaksi",
     data: "Riwayat Keuangan",
     settings: "Pengaturan Sistem",
+    konsultan: "Konsultan AI",
   };
   document.getElementById("header-title").innerText = titles[viewName];
 

@@ -14,12 +14,16 @@ Aplikasi web untuk mencatat dan mengatur keuangan keluarga: pemasukan, pengeluar
 | `js/firebase-sync.js` | Sinkronisasi data ke Firebase Firestore |
 | `js/voice.js` | Catat pakai suara: ucapan diubah jadi isian form transaksi |
 | `js/receipt.js` | Foto struk: total belanja dibaca (OCR Tesseract.js di perangkat) lalu mengisi form |
-| `js/features.js` | Transaksi rutin, target tabungan, pengingat budget, ekspor/impor CSV |
+| `js/features.js` | Transaksi rutin, target tabungan, pengingat budget, ekspor/impor CSV, reset data |
+| `js/konsultan.js` | Halaman chat Konsultan AI: menyusun ringkasan data lalu bertanya ke `/api/konsultan` |
+| `api/konsultan.js` | Fungsi server Vercel yang meneruskan pertanyaan ke Gemini (API key di Environment Variable) |
+| `api/_konsultan-rules.js` | Aturan perilaku konsultan keuangan untuk Gemini |
 | `Logo.png` | Logo aplikasi (juga dipakai sebagai ikon dan di laporan PDF) |
 | `manifest.webmanifest` | Supaya aplikasi bisa ditambahkan ke layar utama HP |
 | `firestore.rules` | Aturan keamanan Firestore (dipasang di Firebase Console) |
 | `apps-script/` | Kode Google Apps Script: cek lisensi, pendaftaran akun, persetujuan Telegram |
 | `docs/PANDUAN-LOGIN-BARU.md` | Panduan pemasangan login akun + persetujuan Telegram |
+| `docs/PANDUAN-KONSULTAN-AI.md` | Cara mengaktifkan Konsultan AI (API key Gemini gratis di Vercel) |
 | `tailwind.config.js`, `package.json` | Konfigurasi build Tailwind |
 
 ## Menjalankan di komputer
