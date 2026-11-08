@@ -103,3 +103,12 @@ Merge pull request ini ke `main`. Jika project Vercel tersambung ke repo GitHub 
 
 - Siapa pun yang tahu **no. HP** seorang pengguna bisa mengetahui **email** yang terhubung dengan no. HP itu, karena aplikasi perlu mengubah no. HP menjadi email untuk login. Password dan data keuangan tetap terlindungi.
 - Email tidak diverifikasi otomatis. Pencocokan email dan no. HP dengan data pembelian dilakukan admin sebelum menekan Setujui.
+
+## Pembaruan: transaksi rutin dan target tabungan
+
+Versi ini menyimpan dua data baru di Firestore (`recurring` dan `goals`). Pasang ulang Rules **sebelum** merge:
+
+1. Firebase Console > **Build > Firestore Database** > tab **Rules**.
+2. Ganti seluruh isinya dengan isi file [`firestore.rules`](../firestore.rules) yang baru > **Publish**.
+
+Rules baru tetap menerima aplikasi versi lama, jadi aman dipasang lebih dulu. Jika lupa, aplikasi tetap menyimpan transaksi dan kategori seperti biasa, tetapi transaksi rutin dan target tabungan hanya tersimpan di perangkat itu.
