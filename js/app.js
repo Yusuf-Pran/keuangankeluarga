@@ -177,6 +177,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function toggleTheme() {
   const html = document.documentElement;
+  if (!prefersReducedMotion()) {
+    html.classList.add("theme-transition");
+    clearTimeout(window.__themeTimer);
+    window.__themeTimer = setTimeout(() => html.classList.remove("theme-transition"), 400);
+  }
   const icon = document.getElementById("theme-icon");
   const iconLogin = document.getElementById("theme-icon-login");
 
@@ -361,8 +366,21 @@ async function forgotPassword() {
 
 // Dipanggil oleh firebase-sync.js setelah akun disetujui
 function unlockApp(profile = {}) {
-  document.getElementById("view-login").style.display = "none";
-  document.getElementById("app-layout").classList.remove("hidden");
+  const login = document.getElementById("view-login");
+  const layout = document.getElementById("app-layout");
+  const wasVisible = login.style.display !== "none" && !document.getElementById("auth-panel-loading").offsetParent;
+  if (wasVisible && !prefersReducedMotion()) {
+    login.classList.add("login-exit");
+    setTimeout(() => {
+      login.style.display = "none";
+      login.classList.remove("login-exit");
+    }, 350);
+  } else {
+    login.style.display = "none";
+  }
+  layout.classList.remove("hidden");
+  layout.classList.add("app-enter");
+  setTimeout(() => layout.classList.remove("app-enter"), 600);
 
   const userName = profile.nama || "Member";
   const userEmail = profile.email || "";
@@ -449,6 +467,60 @@ function escapeHtml(value) {
 function safeId(value) {
   return String(value ?? "").replace(/[^a-zA-Z0-9_-]/g, "");
 }
+
+// ================= MOTION HELPERS =================
+const prefersReducedMotion = () =>
+  window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// Angka berjalan dari nilai sebelumnya ke nilai baru
+function animateRupiah(el, to, prefix = "") {
+  if (!el) return;
+  const from = typeof el._value === "number" ? el._value : 0;
+  el._value = to;
+  if (el._raf) cancelAnimationFrame(el._raf);
+  if (prefersReducedMotion() || from === to) {
+    el.innerText = prefix + formatRupiah(to);
+    return;
+  }
+  const duration = 800;
+  const start = performance.now();
+  const step = (now) => {
+    const t = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - t, 3);
+    el.innerText = prefix + formatRupiah(Math.round(from + (to - from) * eased));
+    if (t < 1) el._raf = requestAnimationFrame(step);
+  };
+  el._raf = requestAnimationFrame(step);
+}
+
+function chartAnimation() {
+  return prefersReducedMotion() ? false : { duration: 700, easing: "easeOutQuart" };
+}
+
+// Status ikon sinkron di header: "saving" | "saved"
+window.setSyncState = function (state) {
+  const el = document.getElementById("cloud-sync-indicator");
+  if (!el) return;
+  el.classList.remove("hidden");
+  const icon = el.querySelector("i");
+  const label = el.querySelector("span");
+  clearTimeout(el._timer);
+  el.classList.remove("sync-saved");
+  if (state === "saving") {
+    icon.className = "fas fa-rotate fa-spin text-green-500";
+    label.innerText = "Menyimpan";
+  } else {
+    void el.offsetWidth;
+    el.classList.add("sync-saved");
+    icon.className = "fas fa-circle-check text-green-500";
+    label.innerText = "Tersimpan";
+    el._timer = setTimeout(() => {
+      icon.className = "fas fa-cloud text-green-500";
+      label.innerText = "Sinkron";
+      el.classList.remove("sync-saved");
+    }, 1600);
+  }
+};
 
 function formatRupiah(angka) {
   return "Rp " + angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -580,9 +652,28 @@ function saveTransaction(e) {
   }
 
   window.selectedMonth = tgl.substring(0, 7);
+  window.highlightTxId = formData.id;
+  clearTimeout(window._highlightTimer);
+  window._highlightTimer = setTimeout(() => (window.highlightTxId = null), 8000);
   saveData();
   resetForm();
-  if (id) switchView("data");
+  playSaveSuccess(e.target);
+  if (id) setTimeout(() => switchView("data"), prefersReducedMotion() ? 0 : 450);
+}
+
+// Tombol simpan sesaat menjadi tanda centang hijau
+function playSaveSuccess(form) {
+  const btn = form && form.querySelector('button[type="submit"]');
+  if (!btn) return;
+  clearTimeout(btn._timer);
+  if (!btn.dataset.label) btn.dataset.label = btn.innerHTML;
+  btn.classList.add("btn-success");
+  btn.innerHTML = '<i class="fas fa-check mr-2"></i> Tersimpan';
+  btn._timer = setTimeout(() => {
+    btn.classList.remove("btn-success");
+    btn.innerHTML = btn.dataset.label;
+    delete btn.dataset.label;
+  }, 1100);
 }
 
 function editTransaction(id) {
@@ -602,11 +693,19 @@ function deleteTransaction(id) {
   Modal.confirm(
     "Yakin ingin menghapus transaksi ini?",
     () => {
-      window.appData.transactions = window.appData.transactions.filter(
-        (t) => t.id !== id,
-      );
-      saveData();
-      showToast("Transaksi dihapus.");
+      const finish = () => {
+        window.appData.transactions = window.appData.transactions.filter(
+          (t) => t.id !== id,
+        );
+        saveData();
+        showToast("Transaksi dihapus.");
+      };
+      const card = document.querySelector(`[data-tx-id="${safeId(id)}"]`);
+      if (!card || prefersReducedMotion()) return finish();
+      card.style.maxHeight = card.offsetHeight + "px";
+      void card.offsetHeight;
+      card.classList.add("motion-remove");
+      setTimeout(finish, 320);
     },
     true,
   );
@@ -820,8 +919,12 @@ function updateTransactionList() {
       index++;
 
       const card = document.createElement("div");
-      card.className =
-        "motion-slide-up bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl flex justify-between items-center group transition-colors hover:bg-gray-100 dark:hover:bg-gray-700/50";
+      card.dataset.txId = safeId(t.id);
+      if (window.highlightTxId && t.id === window.highlightTxId) {
+        card.classList.add("motion-highlight");
+      }
+      card.className +=
+        " motion-slide-up bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl flex justify-between items-center group transition-colors hover:bg-gray-100 dark:hover:bg-gray-700/50";
       card.style = delay;
       card.innerHTML = `
           <div class="flex items-center gap-4 min-w-0">
@@ -1006,9 +1109,9 @@ function updateDashboard() {
   const now = monthTotals(window.selectedMonth);
   const prev = monthTotals(shiftMonth(window.selectedMonth, -1));
 
-  document.getElementById("dash-income").innerText = formatRupiah(now.income);
-  document.getElementById("dash-expense").innerText = formatRupiah(now.expense);
-  document.getElementById("dash-balance").innerText = formatRupiah(totalSaldoAllTime);
+  animateRupiah(document.getElementById("dash-income"), now.income);
+  animateRupiah(document.getElementById("dash-expense"), now.expense);
+  animateRupiah(document.getElementById("dash-balance"), totalSaldoAllTime);
   renderDelta(document.getElementById("dash-income-delta"), now.income, prev.income, true);
   renderDelta(document.getElementById("dash-expense-delta"), now.expense, prev.expense, false);
   const net = now.income - now.expense;
@@ -1049,6 +1152,7 @@ function updateDashboard() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      animation: chartAnimation() && { ...chartAnimation(), animateRotate: true, animateScale: true },
       cutout: "72%",
       plugins: {
         legend: {
@@ -1101,6 +1205,7 @@ function renderTrendChart() {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      animation: chartAnimation(),
       plugins: {
         legend: { display: false },
         tooltip: { callbacks: { label: (c) => ` ${c.dataset.label}: ${formatRupiah(c.parsed.y)}` } },
@@ -1150,7 +1255,7 @@ function renderBudgetTable(catDataBulanIni) {
       bar = "bg-gray-300 dark:bg-gray-600";
       note = `<span class="text-gray-400 italic">Tanpa budget</span>`;
     } else if (pct > 100) {
-      bar = "bg-rose-500";
+      bar = "bg-rose-500 budget-over";
       note = `<span class="text-rose-600 dark:text-rose-400 font-semibold">Lewat ${formatRupiah(terpakai - c.budget)}</span>`;
     } else {
       if (pct >= 75) bar = "bg-amber-500";

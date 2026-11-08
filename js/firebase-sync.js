@@ -253,8 +253,10 @@ function clean(data) {
 
 window.firebaseSaveHook = async function (data) {
   if (!activeUid) return;
+  if (window.setSyncState) window.setSyncState("saving");
   try {
     await setDoc(doc(db, "userData", activeUid), clean(data));
+    if (window.setSyncState) window.setSyncState("saved");
   } catch (e) {
     console.error("Gagal simpan ke Cloud:", e);
   }
