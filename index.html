@@ -19,7 +19,7 @@
       name="description"
       content="SakuGenius: catat pemasukan, pengeluaran, dan budget keluarga dalam satu aplikasi."
     />
-    <meta name="theme-color" content="#4f46e5" />
+    <meta name="theme-color" content="#2B72AE" />
     <link rel="icon" type="image/png" href="Logo.png" />
     <link rel="apple-touch-icon" href="Logo.png" />
     <link rel="manifest" href="manifest.webmanifest" />
@@ -27,7 +27,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
 
     <!-- Tailwind CSS (hasil build: npm run build:css) -->
-    <link rel="stylesheet" href="css/tailwind.css?v=11" />
+    <link rel="stylesheet" href="css/tailwind.css?v=12" />
 
     <!-- Libraries: Chart.js, FontAwesome, html2pdf -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
@@ -41,9 +41,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
     />
-    <link rel="stylesheet" href="css/style.css?v=11" />
+    <link rel="stylesheet" href="css/style.css?v=12" />
 
     <!-- Script inisialisasi tema awal -->
     <script>
@@ -179,7 +179,7 @@
     <!-- ================= VIEW LOGIN / AKUN ================= -->
     <div
       id="view-login"
-      class="flex-1 flex flex-col justify-start items-center absolute inset-0 z-[200] bg-gray-50 dark:bg-gray-900 transition-colors overflow-y-auto py-8"
+      class="flex-1 flex flex-col justify-start items-center absolute inset-0 z-[200] auth-bg bg-gray-50 dark:bg-gray-900 transition-colors overflow-y-auto py-8"
     >
       <div
         class="bg-white dark:bg-gray-800 p-8 md:p-10 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 w-full max-w-sm text-center mx-4 my-auto motion-slide-up"
@@ -492,7 +492,7 @@
               </div>
 
               <div
-                class="card-hover motion-slide-up delay-300 bg-primary rounded-2xl p-5 shadow-lg shadow-indigo-200 dark:shadow-none flex flex-col justify-center text-white relative overflow-hidden"
+                class="card-hover motion-slide-up delay-300 hero-card order-first md:order-none rounded-2xl p-5 shadow-lg shadow-brand-900/20 dark:shadow-none flex flex-col justify-center text-white relative overflow-hidden"
               >
                 <div
                   class="motion-blob absolute -right-10 -top-10 w-32 h-32 bg-white opacity-20 rounded-full blur-2xl"
@@ -502,8 +502,9 @@
                   style="animation-delay: 2s"
                 ></div>
                 <p
-                  class="text-xs font-bold text-indigo-100 uppercase tracking-wider mb-2 relative z-10"
+                  class="text-xs font-bold text-indigo-100 uppercase tracking-wider mb-2 relative z-10 flex items-center gap-2"
                 >
+                  <span class="w-1.5 h-1.5 rounded-full bg-gold-400"></span>
                   Sisa Bulan Ini
                 </p>
                 <p class="num text-3xl font-black relative z-10" id="dash-balance">
@@ -1155,12 +1156,12 @@
     </div>
 
     <!-- KODE LOGIKA UTAMA (LOKAL) -->
-    <script src="js/app.js?v=11"></script>
-    <script src="js/voice.js?v=11"></script>
-    <script src="js/receipt.js?v=11"></script>
-    <script src="js/features.js?v=11"></script>
+    <script src="js/app.js?v=12"></script>
+    <script src="js/voice.js?v=12"></script>
+    <script src="js/receipt.js?v=12"></script>
+    <script src="js/features.js?v=12"></script>
 
     <!-- KODE MODULE FIREBASE SINKRONISASI -->
-    <script type="module" src="js/firebase-sync.js?v=11"></script>
+    <script type="module" src="js/firebase-sync.js?v=12"></script>
   </body>
 </html>

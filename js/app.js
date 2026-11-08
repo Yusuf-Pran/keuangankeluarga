@@ -1292,7 +1292,7 @@ function updateDashboard() {
       datasets: [
         {
           data: entries.map((e) => e[1]),
-          backgroundColor: ["#4f46e5", "#10b981", "#f59e0b", "#ef4444", "#06b6d4", "#8b5cf6", "#ec4899", "#84cc16"],
+          backgroundColor: ["#2B72AE", "#55A2D8", "#C9A24A", "#7C9CBF", "#14B8A6", "#F43F5E", "#93C5E7", "#8B5CF6"],
           borderWidth: 0,
           hoverOffset: 6,
         },
@@ -1311,7 +1311,7 @@ function updateDashboard() {
             boxWidth: 10,
             usePointStyle: true,
             padding: 14,
-            font: { family: "'Inter', sans-serif", size: 12 },
+            font: { family: "'Plus Jakarta Sans', sans-serif", size: 12 },
           },
         },
         tooltip: {
@@ -1360,14 +1360,14 @@ function renderTrendChart() {
         tooltip: { callbacks: { label: (c) => ` ${c.dataset.label}: ${formatRupiah(c.parsed.y)}` } },
       },
       scales: {
-        x: { grid: { display: false }, ticks: { color: tick, font: { family: "'Inter', sans-serif" } } },
+        x: { grid: { display: false }, ticks: { color: tick, font: { family: "'Plus Jakarta Sans', sans-serif" } } },
         y: {
           beginAtZero: true,
           grid: { color: grid },
           border: { display: false },
           ticks: {
             color: tick,
-            font: { family: "'Inter', sans-serif" },
+            font: { family: "'Plus Jakarta Sans', sans-serif" },
             callback: (v) => (v >= 1e6 ? `${v / 1e6} jt` : v >= 1e3 ? `${v / 1e3} rb` : v),
           },
         },
