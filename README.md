@@ -1,6 +1,6 @@
 # SakuGenius
 
-Aplikasi web untuk mencatat dan mengatur keuangan keluarga: pemasukan, pengeluaran, kategori dengan budget bulanan, grafik, laporan PDF, mode gelap, dan sinkronisasi cloud.
+Aplikasi web untuk mencatat dan mengatur keuangan keluarga: pemasukan, pengeluaran, kategori dengan budget bulanan, grafik, laporan PDF (dengan pratinjau), catat pakai suara, mode gelap, dan sinkronisasi cloud.
 
 ## Struktur folder
 
@@ -12,6 +12,7 @@ Aplikasi web untuk mencatat dan mengatur keuangan keluarga: pemasukan, pengeluar
 | `css/style.css` | CSS tambahan: animasi, scrollbar, navigasi aktif |
 | `js/app.js` | Logika aplikasi: lisensi, transaksi, kategori, dashboard, PDF |
 | `js/firebase-sync.js` | Sinkronisasi data ke Firebase Firestore |
+| `js/voice.js` | Catat pakai suara: ucapan diubah jadi isian form transaksi |
 | `Logo.png` | Logo aplikasi (juga dipakai sebagai ikon dan di laporan PDF) |
 | `manifest.webmanifest` | Supaya aplikasi bisa ditambahkan ke layar utama HP |
 | `firestore.rules` | Aturan keamanan Firestore (dipasang di Firebase Console) |
