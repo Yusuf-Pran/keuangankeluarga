@@ -8,7 +8,8 @@ rules_version = '2';
 //                         Hanya ditulis oleh Google Apps Script (admin), bukan aplikasi.
 // - phoneIndex/{nohp}   : no. HP (format 628xx) -> email, untuk login pakai no. HP.
 //                         Hanya ditulis oleh Google Apps Script.
-// - userData/{uid}      : data keuangan milik akun itu sendiri.
+// - userData/{uid}      : data keuangan milik akun itu sendiri
+//                         (transaksi, kategori, transaksi rutin, target tabungan).
 // - sakugenius_sync/... : data lama (versi kode lisensi), hanya bisa dibaca
 //                         pemiliknya untuk dipindahkan, tidak bisa ditulis lagi.
 service cloud.firestore {
@@ -38,10 +39,12 @@ service cloud.firestore {
       allow read: if signedIn() && request.auth.uid == uid && isApproved();
 
       allow create, update: if signedIn() && request.auth.uid == uid && isApproved()
-                            && request.resource.data.keys().hasOnly(['transactions', 'categories'])
+                            && request.resource.data.keys().hasOnly(['transactions', 'categories', 'recurring', 'goals'])
                             && request.resource.data.transactions is list
                             && request.resource.data.categories is list
-                            && request.resource.data.categories.size() <= 200;
+                            && request.resource.data.categories.size() <= 200
+                            && (!('recurring' in request.resource.data) || (request.resource.data.recurring is list && request.resource.data.recurring.size() <= 100))
+                            && (!('goals' in request.resource.data) || (request.resource.data.goals is list && request.resource.data.goals.size() <= 50));
 
       allow delete: if false;
     }

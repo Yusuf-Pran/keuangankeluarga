@@ -206,7 +206,7 @@ async function startApp(user, member) {
       // Pertama kali: pindahkan data cloud lama (versi lisensi) jika ada
       const legacy = await loadLegacyCloudData(user.email);
       const initial = legacy || window.appData;
-      await setDoc(dataRef, clean(initial));
+      await writeUserData(user.uid, initial);
     }
   } catch (e) {
     console.error("Gagal menyiapkan data cloud:", e);
@@ -219,6 +219,7 @@ async function startApp(user, member) {
       document.getElementById("cloud-sync-indicator").classList.remove("hidden");
       if (snap.exists() && window.updateDataFromCloud)
         window.updateDataFromCloud(snap.data());
+      if (snap.exists() && window.runAutoTasks) window.runAutoTasks();
     },
     (error) => console.error("Cloud Sync Error:", error),
   );
@@ -243,19 +244,42 @@ async function loadLegacyCloudData(email) {
   return null;
 }
 
-function clean(data) {
+// Jika Rules Firestore belum diperbarui, simpan bagian lama saja (transaksi + kategori)
+let extrasAllowed = true;
+
+function clean(data, withExtras = extrasAllowed) {
   const d = JSON.parse(JSON.stringify(data || {}));
-  return {
+  const out = {
     transactions: Array.isArray(d.transactions) ? d.transactions : [],
     categories: Array.isArray(d.categories) ? d.categories : [],
   };
+  if (withExtras) {
+    out.recurring = Array.isArray(d.recurring) ? d.recurring : [];
+    out.goals = Array.isArray(d.goals) ? d.goals : [];
+  }
+  return out;
+}
+
+async function writeUserData(uid, data) {
+  const ref = doc(db, "userData", uid);
+  try {
+    await setDoc(ref, clean(data));
+  } catch (e) {
+    if (e && e.code === "permission-denied" && extrasAllowed) {
+      console.warn("Rules Firestore belum mengizinkan recurring/goals; disimpan tanpa keduanya.");
+      extrasAllowed = false;
+      await setDoc(ref, clean(data, false));
+    } else {
+      throw e;
+    }
+  }
 }
 
 window.firebaseSaveHook = async function (data) {
   if (!activeUid) return;
   if (window.setSyncState) window.setSyncState("saving");
   try {
-    await setDoc(doc(db, "userData", activeUid), clean(data));
+    await writeUserData(activeUid, data);
     if (window.setSyncState) window.setSyncState("saved");
   } catch (e) {
     console.error("Gagal simpan ke Cloud:", e);

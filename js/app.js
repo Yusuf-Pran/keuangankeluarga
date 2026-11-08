@@ -124,6 +124,16 @@ const defaultData = {
 let currentDataKey = null;
 window.appData = JSON.parse(JSON.stringify(defaultData));
 
+// Pastikan semua bagian data ada (data lama belum punya recurring/goals)
+function ensureDataShape(data) {
+  const d = data && typeof data === "object" ? data : {};
+  if (!Array.isArray(d.transactions)) d.transactions = [];
+  if (!Array.isArray(d.categories)) d.categories = [];
+  if (!Array.isArray(d.recurring)) d.recurring = [];
+  if (!Array.isArray(d.goals)) d.goals = [];
+  return d;
+}
+
 function readLocalData(key) {
   try {
     return JSON.parse(localStorage.getItem(key));
@@ -145,7 +155,7 @@ window.loadLocalDataForUser = function (uid, email) {
       data = readLocalData(DB_KEY);
     }
   }
-  window.appData = data || JSON.parse(JSON.stringify(defaultData));
+  window.appData = ensureDataShape(data || JSON.parse(JSON.stringify(defaultData)));
   localStorage.setItem(currentDataKey, JSON.stringify(window.appData));
   return window.appData;
 };
@@ -434,6 +444,12 @@ function showToast(message, type = "success") {
 
 // === FUNGSI SINKRONISASI UPDATE DATA ===
 window.updateDataFromCloud = function (cloudData) {
+  cloudData = { ...(cloudData || {}) };
+  // Cloud versi lama (Rules belum diperbarui) tidak punya recurring/goals: pakai yang lokal
+  ["recurring", "goals"].forEach((k) => {
+    if (cloudData[k] === undefined && Array.isArray(window.appData[k])) cloudData[k] = window.appData[k];
+  });
+  cloudData = ensureDataShape(cloudData);
   if (JSON.stringify(window.appData) === JSON.stringify(cloudData))
     return;
 
@@ -574,6 +590,7 @@ function updateAllUI() {
   updateCategoryList();
   updateTransactionList();
   updateDashboard();
+  if (window.renderExtraFeatures) window.renderExtraFeatures();
 }
 
 function updateCategoryDropdown() {
@@ -617,27 +634,13 @@ function saveTransaction(e) {
     nominal: nominal,
   };
 
-  if (jenis === "Pengeluaran") {
-    const catInfo = window.appData.categories.find(
-      (c) => c.nama === kategori,
-    );
-    if (catInfo && catInfo.budget > 0) {
-      const bulanTransaksi = tgl.substring(0, 7);
-      const pemakaianLama = window.appData.transactions
-        .filter(
-          (t) =>
-            t.kategori === kategori &&
-            t.jenis === "Pengeluaran" &&
-            t.id !== id &&
-            t.tanggal.startsWith(bulanTransaksi),
-        )
-        .reduce((sum, t) => sum + t.nominal, 0);
-      if (pemakaianLama + nominal > catInfo.budget)
-        showToast(
-          `Pengeluaran "${kategori}" melebihi budget bulanan!`,
-          "warning",
-        );
-    }
+  const existing = id ? window.appData.transactions.find((t) => t.id === id) : null;
+  if (existing && existing.recurringId) formData.recurringId = existing.recurringId;
+
+  // Cek budget sebelum dan sesudah transaksi ini (untuk pengingat 80% / lewat budget)
+  let budgetWarned = false;
+  if (jenis === "Pengeluaran" && window.checkBudgetAfterSave) {
+    budgetWarned = window.checkBudgetAfterSave(kategori, tgl.substring(0, 7), nominal, id);
   }
 
   if (id) {
@@ -645,11 +648,16 @@ function saveTransaction(e) {
       (t) => t.id === id,
     );
     if (index !== -1) window.appData.transactions[index] = formData;
-    showToast("Transaksi berhasil diperbarui!");
+    if (!budgetWarned) showToast("Transaksi berhasil diperbarui!");
   } else {
     window.appData.transactions.push(formData);
-    if (jenis !== "Pengeluaran")
+    const repeat = document.getElementById("input-recurring");
+    if (repeat && repeat.checked && window.addRecurringFromTransaction) {
+      window.addRecurringFromTransaction(formData);
+      showToast("Disimpan. Transaksi ini akan dicatat otomatis setiap bulan.");
+    } else if (!budgetWarned) {
       showToast("Transaksi berhasil disimpan!");
+    }
   }
 
   window.selectedMonth = tgl.substring(0, 7);
@@ -687,6 +695,9 @@ function editTransaction(id) {
   updateCategoryDropdown();
   document.getElementById("input-category").value = t.kategori;
   document.getElementById("input-amount").value = t.nominal;
+  formatInputRupiah(document.getElementById("input-amount"));
+  const repeatRow = document.getElementById("input-recurring-row");
+  if (repeatRow) repeatRow.classList.add("hidden");
   switchView("input");
 }
 
@@ -717,6 +728,10 @@ function resetForm() {
   document.getElementById("input-name").value = "";
   document.getElementById("input-amount").value = "";
   document.getElementById("input-type").value = "Pengeluaran";
+  const repeat = document.getElementById("input-recurring");
+  if (repeat) repeat.checked = false;
+  const repeatRow = document.getElementById("input-recurring-row");
+  if (repeatRow) repeatRow.classList.remove("hidden");
   updateCategoryDropdown();
 }
 

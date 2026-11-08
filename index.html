@@ -27,7 +27,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
 
     <!-- Tailwind CSS (hasil build: npm run build:css) -->
-    <link rel="stylesheet" href="css/tailwind.css?v=7" />
+    <link rel="stylesheet" href="css/tailwind.css?v=8" />
 
     <!-- Libraries: Chart.js, FontAwesome, html2pdf -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
@@ -43,7 +43,7 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
     />
-    <link rel="stylesheet" href="css/style.css?v=7" />
+    <link rel="stylesheet" href="css/style.css?v=8" />
 
     <!-- Script inisialisasi tema awal -->
     <script>
@@ -91,6 +91,24 @@
         </div>
         <div class="flex gap-3 justify-center" id="modal-buttons"></div>
       </div>
+    </div>
+
+    <!-- MODAL TARGET TABUNGAN -->
+    <div id="goal-modal" class="fixed inset-0 z-[350] hidden items-center justify-center bg-black/60 backdrop-blur-sm px-4" role="dialog" aria-modal="true" aria-labelledby="goal-modal-title">
+      <form onsubmit="saveGoal(event)" class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 max-w-sm w-full border border-gray-100 dark:border-gray-700">
+        <h3 id="goal-modal-title" class="text-lg font-bold text-gray-900 dark:text-white mb-4">Target Tabungan</h3>
+        <input type="hidden" id="goal-id" />
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nama target</label>
+        <input id="goal-name" required maxlength="60" placeholder="Cth: Dana darurat" class="w-full h-10 px-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm dark:text-white focus:ring-2 focus:ring-primary focus:outline-none mb-3" />
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jumlah target (Rp)</label>
+        <input id="goal-target" required inputmode="numeric" placeholder="0" oninput="formatInputRupiah(this)" class="w-full h-10 px-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm dark:text-white focus:ring-2 focus:ring-primary focus:outline-none mb-3 font-bold" />
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ingin tercapai (opsional)</label>
+        <input id="goal-deadline" type="month" class="w-full h-10 px-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm dark:text-white focus:ring-2 focus:ring-primary focus:outline-none mb-6" />
+        <div class="flex gap-3">
+          <button type="button" onclick="closeGoalModal()" class="btn-press w-1/2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-bold py-2.5 rounded-xl">Batal</button>
+          <button type="submit" class="btn-press w-1/2 bg-primary hover:bg-primaryDark text-white font-bold py-2.5 rounded-xl">Simpan</button>
+        </div>
+      </form>
     </div>
 
     <!-- PRATINJAU PDF -->
@@ -550,6 +568,22 @@
                 <canvas id="trendChart"></canvas>
               </div>
             </div>
+
+            <!-- TARGET TABUNGAN -->
+            <div class="mt-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 motion-slide-up delay-400">
+              <div class="flex justify-between items-center gap-3 mb-4">
+                <h3 class="text-sm font-bold text-gray-800 dark:text-white">
+                  <i class="fas fa-piggy-bank text-primary mr-1.5"></i>Target Tabungan
+                </h3>
+                <button
+                  onclick="openGoalModal()"
+                  class="btn-press text-xs font-bold text-primary dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 px-3 py-2 rounded-lg"
+                >
+                  <i class="fas fa-plus mr-1"></i>Target Baru
+                </button>
+              </div>
+              <div id="goal-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            </div>
           </div>
 
           <!-- VIEW INPUT -->
@@ -672,6 +706,13 @@
                     oninput="formatInputRupiah(this)"
                     class="w-full h-[64px] px-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-2xl font-bold text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:outline-none transition-all"
                   />
+                  <label id="input-recurring-row" class="mt-3 flex items-start gap-2.5 cursor-pointer select-none">
+                    <input type="checkbox" id="input-recurring" class="mt-0.5 w-4 h-4 accent-indigo-600" />
+                    <span class="text-sm text-gray-600 dark:text-gray-300">
+                      Ulangi otomatis setiap bulan
+                      <span class="block text-xs text-gray-400">Cocok untuk gaji, cicilan, dan tagihan. Dicatat di tanggal yang sama tiap bulan.</span>
+                    </span>
+                  </label>
                 </div>
                 <div class="flex gap-3">
                   <button
@@ -812,6 +853,50 @@
                 id="category-list"
                 class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-2"
               ></div>
+            </div>
+
+            <!-- TRANSAKSI RUTIN -->
+            <div class="motion-slide-up delay-100 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 mb-6">
+              <h2 class="text-lg font-bold text-gray-800 dark:text-white mb-1">Transaksi Rutin</h2>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Dicatat otomatis setiap bulan. Tambahkan dengan mencentang "Ulangi otomatis setiap bulan" saat input transaksi.
+              </p>
+              <div id="recurring-list" class="space-y-3"></div>
+            </div>
+
+            <!-- PENGINGAT BUDGET -->
+            <div class="motion-slide-up delay-100 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 mb-6">
+              <h2 class="text-lg font-bold text-gray-800 dark:text-white mb-1">Pengingat Budget</h2>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Aplikasi memberi peringatan saat sebuah kategori sudah terpakai 80% dan saat lewat budget.
+              </p>
+              <label class="flex items-center justify-between gap-4 cursor-pointer">
+                <span class="text-sm text-gray-700 dark:text-gray-300">
+                  Tampilkan juga sebagai notifikasi HP/laptop
+                  <span id="notif-status" class="block text-xs text-gray-400"></span>
+                </span>
+                <input type="checkbox" id="notif-toggle" onchange="toggleBudgetNotifications(this.checked)" class="w-5 h-5 accent-indigo-600 shrink-0" />
+              </label>
+            </div>
+
+            <!-- CADANGAN DATA -->
+            <div class="motion-slide-up delay-200 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6 mb-6">
+              <h2 class="text-lg font-bold text-gray-800 dark:text-white mb-1">Cadangan Data (Excel)</h2>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Simpan semua transaksi sebagai file CSV yang bisa dibuka di Excel atau Google Sheets, atau masukkan transaksi dari file CSV.
+              </p>
+              <div class="flex flex-col sm:flex-row gap-3">
+                <button onclick="exportCSV()" class="btn-press flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold py-3 px-4 rounded-xl">
+                  <i class="fas fa-file-export mr-2"></i>Ekspor ke Excel (CSV)
+                </button>
+                <button onclick="document.getElementById('csv-file').click()" class="btn-press flex-1 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-100 text-sm font-bold py-3 px-4 rounded-xl">
+                  <i class="fas fa-file-import mr-2"></i>Impor dari CSV
+                </button>
+                <input type="file" id="csv-file" accept=".csv,text/csv" class="hidden" onchange="importCSV(this.files[0]); this.value='';" />
+              </div>
+              <p class="text-xs text-gray-400 mt-3">
+                Kolom: Tanggal, Jenis, Kategori, Keterangan, Nominal. Transaksi yang sama persis tidak dimasukkan dua kali.
+              </p>
             </div>
 
             <!-- TOMBOL KELUAR & KUNCI APLIKASI -->
@@ -1039,10 +1124,11 @@
     </div>
 
     <!-- KODE LOGIKA UTAMA (LOKAL) -->
-    <script src="js/app.js?v=7"></script>
-    <script src="js/voice.js?v=7"></script>
+    <script src="js/app.js?v=8"></script>
+    <script src="js/voice.js?v=8"></script>
+    <script src="js/features.js?v=8"></script>
 
     <!-- KODE MODULE FIREBASE SINKRONISASI -->
-    <script type="module" src="js/firebase-sync.js?v=7"></script>
+    <script type="module" src="js/firebase-sync.js?v=8"></script>
   </body>
 </html>
