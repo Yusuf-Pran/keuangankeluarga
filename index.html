@@ -27,7 +27,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
 
     <!-- Tailwind CSS (hasil build: npm run build:css) -->
-    <link rel="stylesheet" href="css/tailwind.css?v=2" />
+    <link rel="stylesheet" href="css/tailwind.css?v=3" />
 
     <!-- Libraries: Chart.js, FontAwesome, html2pdf -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
@@ -37,7 +37,7 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
 
-    <link rel="stylesheet" href="css/style.css?v=2" />
+    <link rel="stylesheet" href="css/style.css?v=3" />
 
     <!-- Script inisialisasi tema awal -->
     <script>
@@ -93,52 +93,107 @@
       class="fixed top-5 right-5 z-[300] flex flex-col gap-3"
     ></div>
 
-    <!-- ================= VIEW LOGIN ================= -->
+    <!-- ================= VIEW LOGIN / AKUN ================= -->
     <div
       id="view-login"
-      class="flex-1 flex flex-col justify-center items-center absolute inset-0 z-[200] bg-gray-50 dark:bg-gray-900 transition-colors"
+      class="flex-1 flex flex-col justify-start items-center absolute inset-0 z-[200] bg-gray-50 dark:bg-gray-900 transition-colors overflow-y-auto py-8"
     >
       <div
-        class="bg-white dark:bg-gray-800 p-8 md:p-10 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 w-full max-w-sm text-center mx-4 motion-slide-up"
+        class="bg-white dark:bg-gray-800 p-8 md:p-10 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 w-full max-w-sm text-center mx-4 my-auto motion-slide-up"
       >
-        <div
-          class="motion-float bg-primary text-white w-20 h-20 rounded-3xl flex items-center justify-center font-bold text-4xl mx-auto mb-6 shadow-xl shadow-indigo-200 dark:shadow-none"
-        >
-          <i class="fas fa-lock"></i>
+        <img
+          src="Logo.png"
+          alt="SakuGenius"
+          class="motion-float w-20 h-20 object-contain rounded-3xl mx-auto mb-6"
+        />
+
+        <!-- Memuat status akun -->
+        <div id="auth-panel-loading" class="auth-panel">
+          <i class="fas fa-spinner fa-spin text-2xl text-primary mb-4"></i>
+          <p class="text-sm text-gray-500 dark:text-gray-400">Memeriksa akun...</p>
         </div>
 
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
-          Aktivasi Lisensi
-        </h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
-          Masukkan data diri dan kode akses untuk menggunakan aplikasi.
-        </p>
+        <!-- Masuk -->
+        <form id="auth-panel-login" class="auth-panel hidden" onsubmit="submitLogin(event)">
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Masuk</h2>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            Gunakan email atau nomor HP dan password akun SakuGenius Anda.
+          </p>
+          <input type="text" id="login-id-input" autocomplete="username" placeholder="Email atau No. HP" class="w-full form-input-sync bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none dark:text-white mb-3 transition-all text-sm" />
+          <input type="password" id="login-password-input" autocomplete="current-password" placeholder="Password" class="w-full form-input-sync bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none dark:text-white mb-3 transition-all text-sm mb-2" />
+          <div class="text-right mb-5">
+            <button type="button" onclick="forgotPassword()" class="text-xs text-primary dark:text-indigo-400 font-semibold hover:underline">Lupa password?</button>
+          </div>
+          <button type="submit" class="btn-press w-full bg-primary text-white font-bold py-4 rounded-xl hover:bg-primaryDark transition-colors shadow-lg shadow-indigo-200 dark:shadow-none mb-4 disabled:opacity-60">Masuk</button>
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            Baru membeli SakuGenius?
+            <button type="button" onclick="showAuthPanel('activate')" class="text-primary dark:text-indigo-400 font-semibold hover:underline">Aktivasi lisensi</button>
+          </p>
+        </form>
 
-        <input
-          type="text"
-          id="access-name-input"
-          placeholder="Nama Lengkap"
-          class="w-full form-input-sync bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none dark:text-white mb-3 transition-all text-sm"
-        />
-        <input
-          type="email"
-          id="access-email-input"
-          placeholder="Email Anda"
-          class="w-full form-input-sync bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none dark:text-white mb-4 transition-all text-sm"
-        />
-        <input
-          type="text"
-          id="access-code-input"
-          placeholder="KODE LISENSI"
-          class="w-full form-input-sync bg-indigo-50 dark:bg-gray-900 border border-indigo-200 dark:border-gray-700 rounded-xl text-center text-lg font-bold text-primary dark:text-indigo-400 uppercase tracking-widest focus:ring-2 focus:ring-primary focus:outline-none mb-6 transition-all"
-        />
+        <!-- Langkah 1: kode lisensi -->
+        <form id="auth-panel-activate" class="auth-panel hidden" onsubmit="submitLicenseCode(event)">
+          <p class="text-xs font-bold text-primary dark:text-indigo-400 uppercase tracking-wider mb-2">Langkah 1 dari 2</p>
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Aktivasi Lisensi</h2>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            Masukkan kode lisensi yang Anda terima saat pembelian. Kode hanya bisa dipakai untuk satu akun.
+          </p>
+          <input
+            type="text"
+            id="access-code-input"
+            placeholder="KODE LISENSI"
+            class="w-full form-input-sync bg-indigo-50 dark:bg-gray-900 border border-indigo-200 dark:border-gray-700 rounded-xl text-center text-lg font-bold text-primary dark:text-indigo-400 uppercase tracking-widest focus:ring-2 focus:ring-primary focus:outline-none mb-6 transition-all"
+          />
+          <button type="submit" class="btn-press w-full bg-primary text-white font-bold py-4 rounded-xl hover:bg-primaryDark transition-colors shadow-lg shadow-indigo-200 dark:shadow-none mb-4 disabled:opacity-60">Lanjut</button>
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            Sudah punya akun?
+            <button type="button" onclick="showAuthPanel('login')" class="text-primary dark:text-indigo-400 font-semibold hover:underline">Masuk</button>
+          </p>
+        </form>
 
-        <button
-          onclick="checkAccessCode()"
-          class="btn-press w-full bg-primary text-white font-bold py-4 rounded-xl hover:bg-primaryDark transition-colors shadow-lg shadow-indigo-200 dark:shadow-none mb-4"
-        >
-          Buka Akses
-        </button>
+        <!-- Langkah 2: buat akun -->
+        <form id="auth-panel-register" class="auth-panel hidden" onsubmit="submitRegister(event)">
+          <p class="text-xs font-bold text-primary dark:text-indigo-400 uppercase tracking-wider mb-2">Langkah 2 dari 2</p>
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Buat Akun</h2>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            Gunakan email dan nomor HP yang sama dengan saat pembelian, supaya akun cepat disetujui.
+          </p>
+          <input type="text" id="reg-name-input" autocomplete="name" placeholder="Nama Lengkap" class="w-full form-input-sync bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none dark:text-white mb-3 transition-all text-sm" />
+          <input type="email" id="reg-email-input" autocomplete="email" placeholder="Email" class="w-full form-input-sync bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none dark:text-white mb-3 transition-all text-sm" />
+          <input type="tel" id="reg-phone-input" autocomplete="tel" inputmode="tel" placeholder="No. HP (contoh: 0812xxxxxxx)" class="w-full form-input-sync bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none dark:text-white mb-3 transition-all text-sm" />
+          <input type="password" id="reg-password-input" autocomplete="new-password" placeholder="Password (minimal 8 karakter)" class="w-full form-input-sync bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none dark:text-white mb-3 transition-all text-sm" />
+          <input type="password" id="reg-password2-input" autocomplete="new-password" placeholder="Ulangi Password" class="w-full form-input-sync bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary focus:outline-none dark:text-white mb-3 transition-all text-sm mb-6" />
+          <button type="submit" class="btn-press w-full bg-primary text-white font-bold py-4 rounded-xl hover:bg-primaryDark transition-colors shadow-lg shadow-indigo-200 dark:shadow-none mb-4 disabled:opacity-60">Daftar</button>
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            <button type="button" onclick="showAuthPanel('activate')" class="text-primary dark:text-indigo-400 font-semibold hover:underline">Kembali</button>
+          </p>
+        </form>
+
+        <!-- Menunggu persetujuan -->
+        <div id="auth-panel-pending" class="auth-panel hidden">
+          <div class="w-14 h-14 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 flex items-center justify-center mx-auto mb-4 text-2xl">
+            <i class="fas fa-hourglass-half"></i>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Menunggu Persetujuan</h2>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            Akun <span id="pending-email" class="font-semibold text-gray-700 dark:text-gray-200"></span> sedang diperiksa admin.
+            Halaman ini akan terbuka otomatis setelah disetujui.
+          </p>
+          <button type="button" onclick="logoutAccount()" class="btn-press w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-3 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors mb-4">Keluar</button>
+        </div>
+
+        <!-- Ditolak / bermasalah -->
+        <div id="auth-panel-rejected" class="auth-panel hidden">
+          <div class="w-14 h-14 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 flex items-center justify-center mx-auto mb-4 text-2xl">
+            <i class="fas fa-user-slash"></i>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Akun Belum Aktif</h2>
+          <p id="rejected-message" class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            Pendaftaran akun ini tidak disetujui. Hubungi admin SakuGenius untuk bantuan.
+          </p>
+          <button type="button" onclick="logoutAccount()" class="btn-press w-full bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-3 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors mb-4">Keluar</button>
+        </div>
+
         <p class="text-xs text-gray-400">SakuGenius &copy; 2026</p>
       </div>
 
@@ -842,9 +897,9 @@
     </div>
 
     <!-- KODE LOGIKA UTAMA (LOKAL) -->
-    <script src="js/app.js?v=2"></script>
+    <script src="js/app.js?v=3"></script>
 
     <!-- KODE MODULE FIREBASE SINKRONISASI -->
-    <script type="module" src="js/firebase-sync.js?v=2"></script>
+    <script type="module" src="js/firebase-sync.js?v=3"></script>
   </body>
 </html>

@@ -119,14 +119,36 @@ const defaultData = {
   ],
 };
 
-window.appData = (function () {
+// Data lokal disimpan per akun: SAKUGENIUS_DATA_<uid>.
+// Sebelum login, appData berisi data awal saja.
+let currentDataKey = null;
+window.appData = JSON.parse(JSON.stringify(defaultData));
+
+function readLocalData(key) {
   try {
-    return JSON.parse(localStorage.getItem(DB_KEY)) || defaultData;
+    return JSON.parse(localStorage.getItem(key));
   } catch (e) {
-    console.error("Data lokal rusak, memakai data awal:", e);
-    return defaultData;
+    console.error("Data lokal rusak, diabaikan:", e);
+    return null;
   }
-})();
+}
+
+// Dipanggil firebase-sync.js saat akun yang disetujui masuk.
+// Mengembalikan data lokal milik akun ini (termasuk data lama sebelum ada akun).
+window.loadLocalDataForUser = function (uid, email) {
+  currentDataKey = `${DB_KEY}_${uid}`;
+  let data = readLocalData(currentDataKey);
+  if (!data) {
+    // Data lama (versi lisensi) hanya diambil jika email-nya sama
+    const legacyEmail = (localStorage.getItem("SAKUGENIUS_USER_EMAIL") || "").toLowerCase();
+    if (legacyEmail && legacyEmail === String(email || "").toLowerCase()) {
+      data = readLocalData(DB_KEY);
+    }
+  }
+  window.appData = data || JSON.parse(JSON.stringify(defaultData));
+  localStorage.setItem(currentDataKey, JSON.stringify(window.appData));
+  return window.appData;
+};
 let pieChartInstance = null;
 
 window.selectedMonth = (function () {
@@ -136,8 +158,6 @@ window.selectedMonth = (function () {
   return `${yyyy}-${mm}`;
 })();
 
-const LICENSE_API_URL =
-  "https://script.google.com/macros/s/AKfycbxAYA0LTEJv8KKjLkiuauKRuS7ZrhjZHwr2CoerlN0llvbrQL_I69IN5skSUDtpdEaq/exec";
 
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("input-date").valueAsDate = new Date();
@@ -149,12 +169,10 @@ document.addEventListener("DOMContentLoaded", () => {
     ? "fas fa-sun"
     : "fas fa-moon";
 
-  if (localStorage.getItem("SAKUGENIUS_ACCESS") === "GRANTED")
-    unlockApp();
-  else {
-    document.getElementById("view-login").style.display = "flex";
-    document.getElementById("app-layout").classList.add("hidden");
-  }
+  // Status login ditentukan oleh Firebase (js/firebase-sync.js).
+  document.getElementById("view-login").style.display = "flex";
+  document.getElementById("app-layout").classList.add("hidden");
+  showAuthPanel("loading");
 });
 
 function toggleTheme() {
@@ -176,97 +194,199 @@ function toggleTheme() {
   if (pieChartInstance) updateDashboard();
 }
 
-async function checkAccessCode() {
-  const nameInput = document
-    .getElementById("access-name-input")
-    .value.trim();
-  const emailInput = document
-    .getElementById("access-email-input")
-    .value.trim();
-  const codeInput = document
+// ================= AKUN & LOGIN =================
+// Kode lisensi yang sudah dicek di langkah 1, dipakai saat daftar di langkah 2.
+let pendingLicenseCode = null;
+
+function showAuthPanel(name) {
+  document.querySelectorAll(".auth-panel").forEach((el) => {
+    el.classList.toggle("hidden", el.id !== `auth-panel-${name}`);
+  });
+  if (name === "register" && !pendingLicenseCode) showAuthPanel("activate");
+}
+
+function showLoginScreen(panel = "login") {
+  document.getElementById("app-layout").classList.add("hidden");
+  document.getElementById("view-login").style.display = "flex";
+  showAuthPanel(panel);
+}
+
+function setFormBusy(form, busy, label = "Memproses...") {
+  const btn = form.querySelector('button[type="submit"]');
+  if (!btn) return;
+  if (busy) {
+    btn.dataset.label = btn.innerHTML;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> ${label}`;
+  } else if (btn.dataset.label) {
+    btn.innerHTML = btn.dataset.label;
+  }
+  btn.disabled = busy;
+}
+
+function authReady() {
+  if (window.sgAuth) return true;
+  showToast("Sedang menyiapkan koneksi, coba lagi sebentar.", "warning");
+  return false;
+}
+
+// Ubah 08xx / +628xx / 628xx menjadi format 628xx
+function normalizePhone(value) {
+  let digits = String(value || "").replace(/\D/g, "");
+  if (digits.startsWith("0")) digits = "62" + digits.slice(1);
+  else if (digits.startsWith("8")) digits = "62" + digits;
+  return digits;
+}
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+async function submitLogin(e) {
+  e.preventDefault();
+  if (!authReady()) return;
+  const form = e.target;
+  const id = document.getElementById("login-id-input").value.trim();
+  const password = document.getElementById("login-password-input").value;
+  if (!id || !password) {
+    showToast("Isi email/no. HP dan password.", "warning");
+    return;
+  }
+  setFormBusy(form, true, "Masuk...");
+  try {
+    await window.sgAuth.login(id, password);
+  } catch (err) {
+    showToast(err.message || "Gagal masuk.", "error");
+  } finally {
+    setFormBusy(form, false);
+  }
+}
+
+async function submitLicenseCode(e) {
+  e.preventDefault();
+  if (!authReady()) return;
+  const form = e.target;
+  const code = document
     .getElementById("access-code-input")
     .value.trim()
     .toUpperCase();
-  const btn = document.querySelector(
-    'button[onclick="checkAccessCode()"]',
-  );
-
-  if (!nameInput || !emailInput || !codeInput) {
-    showToast("Semua data wajib diisi!", "warning");
+  if (!code) {
+    showToast("Masukkan kode lisensi.", "warning");
     return;
   }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput)) {
-    showToast("Format email salah!", "warning");
-    return;
-  }
-
-  const originalBtnText = btn.innerHTML;
-  btn.innerHTML =
-    '<i class="fas fa-spinner fa-spin mr-2"></i> Memeriksa...';
-  btn.disabled = true;
-
+  setFormBusy(form, true, "Memeriksa...");
   try {
-    const urlWithParams = `${LICENSE_API_URL}?kode=${encodeURIComponent(codeInput)}&nama=${encodeURIComponent(nameInput)}&email=${encodeURIComponent(emailInput)}`;
-    const response = await fetch(urlWithParams, { method: "GET" });
-    const data = await response.json();
-
-    if (data.valid) {
-      localStorage.setItem("SAKUGENIUS_ACCESS", "GRANTED");
-      localStorage.setItem(
-        "SAKUGENIUS_USER_NAME",
-        data.nama || nameInput,
-      );
-      localStorage.setItem("SAKUGENIUS_USER_EMAIL", emailInput);
-      showToast(data.message, "success");
-      setTimeout(unlockApp, 1000);
+    const res = await window.sgAuth.checkLicense(code);
+    if (res.valid) {
+      pendingLicenseCode = code;
+      showToast(res.message || "Kode lisensi valid.", "success");
+      showAuthPanel("register");
     } else {
-      showToast(data.message, "error");
-      btn.innerHTML = originalBtnText;
-      btn.disabled = false;
+      showToast(res.message || "Kode lisensi tidak valid.", "error");
     }
-  } catch (error) {
+  } catch (err) {
     showToast(
       "Gagal terhubung ke server lisensi. Pastikan internet lancar.",
       "error",
     );
-    btn.innerHTML = originalBtnText;
-    btn.disabled = false;
+  } finally {
+    setFormBusy(form, false);
   }
 }
 
-function unlockApp() {
+async function submitRegister(e) {
+  e.preventDefault();
+  if (!authReady()) return;
+  const form = e.target;
+  const nama = document.getElementById("reg-name-input").value.trim();
+  const email = document.getElementById("reg-email-input").value.trim();
+  const phone = normalizePhone(
+    document.getElementById("reg-phone-input").value,
+  );
+  const password = document.getElementById("reg-password-input").value;
+  const password2 = document.getElementById("reg-password2-input").value;
+
+  if (!nama || !email || !phone || !password) {
+    showToast("Semua data wajib diisi!", "warning");
+    return;
+  }
+  if (!isValidEmail(email)) {
+    showToast("Format email salah!", "warning");
+    return;
+  }
+  if (!/^62\d{8,13}$/.test(phone)) {
+    showToast("Nomor HP tidak valid. Contoh: 081234567890", "warning");
+    return;
+  }
+  if (password.length < 8) {
+    showToast("Password minimal 8 karakter.", "warning");
+    return;
+  }
+  if (password !== password2) {
+    showToast("Ulangi password tidak sama.", "warning");
+    return;
+  }
+
+  setFormBusy(form, true, "Mendaftarkan...");
+  try {
+    await window.sgAuth.register({
+      licenseCode: pendingLicenseCode,
+      nama,
+      email,
+      phone,
+      password,
+    });
+    pendingLicenseCode = null;
+    showToast("Pendaftaran terkirim. Menunggu persetujuan admin.", "success");
+  } catch (err) {
+    showToast(err.message || "Pendaftaran gagal.", "error");
+  } finally {
+    setFormBusy(form, false);
+  }
+}
+
+async function forgotPassword() {
+  if (!authReady()) return;
+  const id = document.getElementById("login-id-input").value.trim();
+  if (!id) {
+    showToast("Isi email atau no. HP dulu, lalu klik Lupa password.", "warning");
+    return;
+  }
+  try {
+    await window.sgAuth.resetPassword(id);
+    showToast("Link ganti password sudah dikirim ke email Anda.", "success");
+  } catch (err) {
+    showToast(err.message || "Gagal mengirim email.", "error");
+  }
+}
+
+// Dipanggil oleh firebase-sync.js setelah akun disetujui
+function unlockApp(profile = {}) {
   document.getElementById("view-login").style.display = "none";
   document.getElementById("app-layout").classList.remove("hidden");
 
-  const userName =
-    localStorage.getItem("SAKUGENIUS_USER_NAME") || "Member";
-  const userEmail =
-    localStorage.getItem("SAKUGENIUS_USER_EMAIL") || "Premium";
+  const userName = profile.nama || "Member";
+  const userEmail = profile.email || "";
+  localStorage.setItem("SAKUGENIUS_USER_NAME", userName);
+  localStorage.setItem("SAKUGENIUS_USER_EMAIL", userEmail);
   document.getElementById("sidebar-user-initial").innerText = userName
     .charAt(0)
     .toUpperCase();
   document.getElementById("sidebar-user-name").innerText = userName;
   document.getElementById("sidebar-user-email").innerText = userEmail;
 
-  // Picu sinkronisasi cloud dengan delay sedikit untuk memastikan Firebase termuat
-  setTimeout(() => {
-    if (window.setupCloudSync) window.setupCloudSync();
-  }, 500);
-
   updateAllUI();
   switchView("dashboard");
 }
 
+function logoutAccount() {
+  if (window.sgAuth) window.sgAuth.logout();
+  else window.location.reload();
+}
+
 function logout() {
   Modal.confirm(
-    "Yakin ingin mencabut lisensi dan keluar?",
-    () => {
-      localStorage.removeItem("SAKUGENIUS_ACCESS");
-      document.getElementById("app-layout").classList.add("hidden");
-      document.getElementById("view-login").style.display = "flex";
-      document.getElementById("access-code-input").value = "";
-      window.location.reload();
-    },
+    "Yakin ingin keluar dari akun ini?",
+    () => logoutAccount(),
     true,
   );
 }
@@ -300,12 +420,14 @@ window.updateDataFromCloud = function (cloudData) {
     return;
 
   window.appData = cloudData;
-  localStorage.setItem(DB_KEY, JSON.stringify(window.appData));
+  if (currentDataKey)
+    localStorage.setItem(currentDataKey, JSON.stringify(window.appData));
   updateAllUI();
 };
 
 function saveData() {
-  localStorage.setItem(DB_KEY, JSON.stringify(window.appData));
+  if (currentDataKey)
+    localStorage.setItem(currentDataKey, JSON.stringify(window.appData));
   if (window.firebaseSaveHook) window.firebaseSaveHook(window.appData);
   updateAllUI();
 }

@@ -1,26 +1,43 @@
 rules_version = '2';
 
-// Aturan keamanan Firestore untuk SakuGenius.
+// Aturan keamanan Firestore untuk SakuGenius (login akun + persetujuan admin).
 // Pasang lewat Firebase Console > Firestore Database > Rules, lalu klik Publish.
 //
-// Tahap ini (sementara):
-// - Hanya pengguna yang sudah login Firebase (anonim) yang boleh membaca/menulis.
-// - Hanya koleksi "sakugenius_sync" yang boleh dipakai; koleksi lain ditolak.
-// - Isi dokumen harus berbentuk data SakuGenius (transactions + categories)
-//   dan tidak boleh dihapus dari aplikasi.
-//
-// Catatan: ID dokumen masih berasal dari email, jadi orang yang tahu email
-// pengguna lain secara teori masih bisa mengakses datanya. Perbaikan penuhnya
-// butuh perubahan di Google Apps Script lisensi (lihat README, bagian Keamanan).
+// Koleksi:
+// - members/{uid}       : profil akun + status (pending / approved / rejected).
+//                         Hanya ditulis oleh Google Apps Script (admin), bukan aplikasi.
+// - phoneIndex/{nohp}   : no. HP (format 628xx) -> email, untuk login pakai no. HP.
+//                         Hanya ditulis oleh Google Apps Script.
+// - userData/{uid}      : data keuangan milik akun itu sendiri.
+// - sakugenius_sync/... : data lama (versi kode lisensi), hanya bisa dibaca
+//                         pemiliknya untuk dipindahkan, tidak bisa ditulis lagi.
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    match /sakugenius_sync/{emailId} {
-      allow read: if request.auth != null
-                  && emailId.matches('^[A-Za-z0-9_]{3,200}$');
+    function signedIn() {
+      return request.auth != null;
+    }
 
-      allow create, update: if request.auth != null
-                            && emailId.matches('^[A-Za-z0-9_]{3,200}$')
+    function isApproved() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/members/$(request.auth.uid)).data.status == 'approved';
+    }
+
+    match /members/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    match /phoneIndex/{phone} {
+      allow get: if true;
+      allow list, write: if false;
+    }
+
+    match /userData/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid && isApproved();
+
+      allow create, update: if signedIn() && request.auth.uid == uid && isApproved()
                             && request.resource.data.keys().hasOnly(['transactions', 'categories'])
                             && request.resource.data.transactions is list
                             && request.resource.data.categories is list
@@ -29,7 +46,15 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Tolak semua akses ke koleksi lain.
+    // Data lama: hanya pemilik email yang sudah disetujui yang bisa membacanya.
+    match /sakugenius_sync/{emailId} {
+      allow read: if isApproved()
+                  && request.auth.token.email != null
+                  && emailId.lower() == request.auth.token.email.lower().replace('[^a-z0-9]', '_');
+      allow write: if false;
+    }
+
+    // Tolak semua akses lain.
     match /{document=**} {
       allow read, write: if false;
     }

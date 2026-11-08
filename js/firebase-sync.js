@@ -1,12 +1,16 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
 import {
   getAuth,
-  signInAnonymously,
   onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  signOut,
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 import {
   getFirestore,
   doc,
+  getDoc,
   onSnapshot,
   setDoc,
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
@@ -22,70 +26,235 @@ const firebaseConfig = {
   appId: "1:793297223197:web:381ecd51ca9b4a1c3510f4",
 };
 
-let app, auth, db;
-try {
-  app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
+// URL Web App Google Apps Script (lisensi + pendaftaran + Telegram)
+const LICENSE_API_URL =
+  "https://script.google.com/macros/s/AKfycbxAYA0LTEJv8KKjLkiuauKRuS7ZrhjZHwr2CoerlN0llvbrQL_I69IN5skSUDtpdEaq/exec";
 
-  signInAnonymously(auth).catch((error) => {
-    console.error("Gagal Login Anonim Firebase:", error);
-  });
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+auth.languageCode = "id";
+const db = getFirestore(app);
 
-  onAuthStateChanged(auth, (user) => {
-    window.currentUser = user;
-    if (user && localStorage.getItem("SAKUGENIUS_ACCESS") === "GRANTED") {
-      if (window.setupCloudSync) window.setupCloudSync();
-    }
-  });
-} catch (e) {
-  console.error("Gagal inisialisasi Firebase:", e);
+let unsubMember = null;
+let unsubData = null;
+let activeUid = null;
+
+// ---------- Pesan error dalam Bahasa Indonesia ----------
+function friendlyError(err) {
+  const code = (err && err.code) || "";
+  const map = {
+    "auth/invalid-credential": "Email/no. HP atau password salah.",
+    "auth/wrong-password": "Email/no. HP atau password salah.",
+    "auth/user-not-found": "Akun tidak ditemukan.",
+    "auth/invalid-email": "Format email salah.",
+    "auth/email-already-in-use": "Email ini sudah terdaftar. Silakan masuk.",
+    "auth/weak-password": "Password terlalu lemah (minimal 8 karakter).",
+    "auth/too-many-requests": "Terlalu banyak percobaan. Coba lagi beberapa menit lagi.",
+    "auth/network-request-failed": "Tidak ada koneksi internet.",
+  };
+  return new Error(map[code] || err.message || "Terjadi kesalahan.");
 }
 
-window.setupCloudSync = function () {
-  if (!window.currentUser || !db) return;
-  const email = localStorage.getItem("SAKUGENIUS_USER_EMAIL");
-  if (!email) return;
+function normalizePhone(value) {
+  let digits = String(value || "").replace(/\D/g, "");
+  if (digits.startsWith("0")) digits = "62" + digits.slice(1);
+  else if (digits.startsWith("8")) digits = "62" + digits;
+  return digits;
+}
 
-  const emailId = email.replace(/[^a-zA-Z0-9]/g, "_");
-  const userDocRef = doc(db, "sakugenius_sync", emailId);
+// Panggil Apps Script. Content-Type text/plain agar tidak memicu CORS preflight.
+async function callLicenseApi(payload) {
+  const res = await fetch(LICENSE_API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload),
+  });
+  return res.json();
+}
 
-  if (window.unsubFirestore) window.unsubFirestore();
+// Email atau no. HP -> email untuk login Firebase
+async function resolveEmail(id) {
+  if (id.includes("@")) return id.trim();
+  const phone = normalizePhone(id);
+  if (!phone) throw new Error("Isi email atau no. HP yang valid.");
+  const snap = await getDoc(doc(db, "phoneIndex", phone));
+  if (!snap.exists()) throw new Error("No. HP belum terdaftar.");
+  return snap.data().email;
+}
 
-  window.unsubFirestore = onSnapshot(
-    userDocRef,
-    (docSnap) => {
-      document
-        .getElementById("cloud-sync-indicator")
-        .classList.remove("hidden");
+// ---------- Fungsi yang dipakai js/app.js ----------
+window.sgAuth = {
+  async checkLicense(code) {
+    return callLicenseApi({ action: "checkLicense", kode: code });
+  },
 
-      if (docSnap.exists()) {
-        if (window.updateDataFromCloud)
-          window.updateDataFromCloud(docSnap.data());
-      } else {
-        if (window.appData) {
-          const cleanData = JSON.parse(JSON.stringify(window.appData));
-          setDoc(userDocRef, cleanData).catch((e) => console.error(e));
+  async login(id, password) {
+    try {
+      const email = await resolveEmail(id);
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      throw err.code ? friendlyError(err) : err;
+    }
+  },
+
+  async register({ licenseCode, nama, email, phone, password }) {
+    // No. HP harus belum dipakai akun lain
+    const phoneSnap = await getDoc(doc(db, "phoneIndex", phone));
+    if (phoneSnap.exists()) throw new Error("No. HP ini sudah terdaftar. Silakan masuk.");
+
+    let cred;
+    try {
+      cred = await createUserWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      throw friendlyError(err);
+    }
+
+    try {
+      const idToken = await cred.user.getIdToken();
+      const res = await callLicenseApi({
+        action: "register",
+        kode: licenseCode,
+        idToken,
+        nama,
+        phone,
+      });
+      if (!res.ok) throw new Error(res.message || "Pendaftaran ditolak server.");
+    } catch (err) {
+      // Batalkan akun Firebase agar pengguna bisa mencoba lagi
+      await cred.user.delete().catch(() => signOut(auth));
+      throw err;
+    }
+  },
+
+  async resetPassword(id) {
+    try {
+      const email = await resolveEmail(id);
+      await sendPasswordResetEmail(auth, email);
+    } catch (err) {
+      throw err.code ? friendlyError(err) : err;
+    }
+  },
+
+  async logout() {
+    stopListeners();
+    await signOut(auth);
+    window.location.reload();
+  },
+};
+
+function stopListeners() {
+  if (unsubMember) unsubMember();
+  if (unsubData) unsubData();
+  unsubMember = unsubData = null;
+}
+
+// ---------- Status akun ----------
+onAuthStateChanged(auth, (user) => {
+  stopListeners();
+  activeUid = null;
+  if (!user) {
+    window.showLoginScreen("login");
+    return;
+  }
+
+  let unlocked = false;
+  unsubMember = onSnapshot(
+    doc(db, "members", user.uid),
+    (snap) => {
+      const member = snap.exists() ? snap.data() : null;
+      const status = member ? member.status : null;
+
+      if (status === "approved") {
+        if (!unlocked) {
+          unlocked = true;
+          startApp(user, member);
         }
+        return;
+      }
+      if (unlocked) {
+        // Akses dicabut saat aplikasi terbuka
+        window.location.reload();
+        return;
+      }
+      if (status === "pending" || status === null) {
+        // null = pendaftaran baru saja dikirim dan dokumen belum dibuat server
+        document.getElementById("pending-email").innerText = user.email || "";
+        window.showLoginScreen("pending");
+      } else {
+        window.showLoginScreen("rejected");
       }
     },
     (error) => {
-      console.error("Cloud Sync Error:", error);
+      console.error("Gagal membaca status akun:", error);
+      window.showLoginScreen("rejected");
+      document.getElementById("rejected-message").innerText =
+        "Status akun tidak bisa diperiksa. Periksa koneksi internet lalu coba lagi.";
     },
   );
-};
+});
+
+// ---------- Data per akun ----------
+async function startApp(user, member) {
+  activeUid = user.uid;
+  window.loadLocalDataForUser(user.uid, user.email);
+  window.unlockApp({ nama: member.nama, email: user.email });
+
+  const dataRef = doc(db, "userData", user.uid);
+  try {
+    const snap = await getDoc(dataRef);
+    if (!snap.exists()) {
+      // Pertama kali: pindahkan data cloud lama (versi lisensi) jika ada
+      const legacy = await loadLegacyCloudData(user.email);
+      const initial = legacy || window.appData;
+      await setDoc(dataRef, clean(initial));
+    }
+  } catch (e) {
+    console.error("Gagal menyiapkan data cloud:", e);
+  }
+
+  if (activeUid !== user.uid) return;
+  unsubData = onSnapshot(
+    dataRef,
+    (snap) => {
+      document.getElementById("cloud-sync-indicator").classList.remove("hidden");
+      if (snap.exists() && window.updateDataFromCloud)
+        window.updateDataFromCloud(snap.data());
+    },
+    (error) => console.error("Cloud Sync Error:", error),
+  );
+}
+
+async function loadLegacyCloudData(email) {
+  // ID dokumen lama = email dengan karakter selain huruf/angka diganti "_"
+  const candidates = new Set();
+  const savedEmail = localStorage.getItem("SAKUGENIUS_USER_EMAIL");
+  if (savedEmail && savedEmail.toLowerCase() === email.toLowerCase())
+    candidates.add(savedEmail.replace(/[^a-zA-Z0-9]/g, "_"));
+  candidates.add(email.replace(/[^a-zA-Z0-9]/g, "_"));
+
+  for (const id of candidates) {
+    try {
+      const snap = await getDoc(doc(db, "sakugenius_sync", id));
+      if (snap.exists()) return snap.data();
+    } catch (e) {
+      console.warn("Data lama tidak bisa dibaca:", e.code || e);
+    }
+  }
+  return null;
+}
+
+function clean(data) {
+  const d = JSON.parse(JSON.stringify(data || {}));
+  return {
+    transactions: Array.isArray(d.transactions) ? d.transactions : [],
+    categories: Array.isArray(d.categories) ? d.categories : [],
+  };
+}
 
 window.firebaseSaveHook = async function (data) {
-  if (!window.currentUser || !db) return;
-  const email = localStorage.getItem("SAKUGENIUS_USER_EMAIL");
-  if (!email) return;
-
-  const emailId = email.replace(/[^a-zA-Z0-9]/g, "_");
-  const userDocRef = doc(db, "sakugenius_sync", emailId);
-
+  if (!activeUid) return;
   try {
-    const cleanData = JSON.parse(JSON.stringify(data));
-    await setDoc(userDocRef, cleanData);
+    await setDoc(doc(db, "userData", activeUid), clean(data));
   } catch (e) {
     console.error("Gagal simpan ke Cloud:", e);
   }

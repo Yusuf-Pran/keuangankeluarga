@@ -15,6 +15,8 @@ Aplikasi web untuk mencatat dan mengatur keuangan keluarga: pemasukan, pengeluar
 | `Logo.png` | Logo aplikasi (juga dipakai sebagai ikon dan di laporan PDF) |
 | `manifest.webmanifest` | Supaya aplikasi bisa ditambahkan ke layar utama HP |
 | `firestore.rules` | Aturan keamanan Firestore (dipasang di Firebase Console) |
+| `apps-script/` | Kode Google Apps Script: cek lisensi, pendaftaran akun, persetujuan Telegram |
+| `docs/PANDUAN-LOGIN-BARU.md` | Panduan pemasangan login akun + persetujuan Telegram |
 | `tailwind.config.js`, `package.json` | Konfigurasi build Tailwind |
 
 ## Menjalankan di komputer
@@ -40,10 +42,13 @@ npm run build:css  # atau: npm run watch:css selama mengedit
 
 Lalu commit file `css/tailwind.css` yang baru. Setelah mengubah file CSS/JS, naikkan angka `?v=` di `index.html` supaya browser pengguna mengambil versi terbaru.
 
-## Keamanan
+## Login dan keamanan
 
-- **Aturan Firestore:** salin isi `firestore.rules` ke Firebase Console > Firestore Database > Rules, lalu Publish.
-- **Batasan saat ini:** data cloud disimpan dengan ID dari email, dan login Firebase bersifat anonim. Perbaikan penuh butuh server lisensi (Google Apps Script) yang mengeluarkan token login Firebase per pengguna, sehingga tiap orang hanya bisa membuka datanya sendiri.
+- Kode lisensi dipakai **sekali** saat membuat akun. Setelah itu pengguna login dengan email atau no. HP + password (Firebase Authentication).
+- Akun baru berstatus **menunggu** sampai admin menekan **Setujui** di Telegram.
+- Data keuangan disimpan di `userData/{uid}` dan hanya bisa dibaca pemilik akun yang sudah disetujui (lihat `firestore.rules`).
+- Data lama (versi kode lisensi) dipindahkan otomatis saat pengguna pertama kali login.
+- Cara pemasangan lengkap: [docs/PANDUAN-LOGIN-BARU.md](docs/PANDUAN-LOGIN-BARU.md).
 - `apiKey` Firebase di `js/firebase-sync.js` memang boleh terlihat publik; keamanannya diatur oleh aturan Firestore.
 
 ## Library yang dipakai
@@ -52,4 +57,4 @@ Lalu commit file `css/tailwind.css` yang baru. Setelah mengubah file CSS/JS, nai
 - Chart.js 4.5.1
 - html2pdf.js 0.10.1
 - Font Awesome 6.4.0
-- Firebase JS SDK 12.16.0 (Auth + Firestore)
+- Firebase JS SDK 12.16.0 (Authentication Email/Password + Firestore)
