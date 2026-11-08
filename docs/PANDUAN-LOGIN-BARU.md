@@ -17,24 +17,24 @@ Kerjakan langkah di bawah **berurutan dalam satu waktu** (sekitar 30 menit). Scr
 1. Buka https://console.firebase.google.com dan pilih project **sakugenius-app**.
 2. Menu kiri: **Build > Authentication**. Jika muncul tombol **Get started**, klik.
 3. Tab **Sign-in method** > **Add new provider** > **Email/Password** > aktifkan **Email/Password** (bagian pertama saja) > **Save**.
-4. Tab **Settings** > **Authorized domains**: pastikan domain tempat aplikasi di-hosting ada di daftar (misalnya `yusuf-pran.github.io`). Jika belum, klik **Add domain**.
+4. Tab **Settings** > **Authorized domains**: pastikan domain tempat aplikasi di-hosting ada di daftar (misalnya `nama-aplikasi.vercel.app`, atau domain sendiri jika ada). Jika belum, klik **Add domain**.
 5. (Opsional) Tab **Templates** > **Password reset**: ubah bahasa email ganti password ke Bahasa Indonesia.
 
 ## 2. Siapkan Google Sheet lisensi
 
-Script mencari tab bernama **`Lisensi`** (bisa diubah lewat Script Property `SHEET_NAME`). Baris 1 berisi judul kolom, huruf besar/kecil tidak berpengaruh. Kolom yang sudah ada (**KODE, LISENSI, STATUS, NAMA, EMAIL, SOLD**) tetap dipakai, dan kolom baru ditambahkan **otomatis** di sebelah kanan:
+Script memakai **tab pertama** di Google Sheet, sama seperti script lama (bisa diganti lewat Script Property `SHEET_NAME`). Kolom A sampai D dipakai persis seperti sebelumnya, dan kolom baru ditambahkan **otomatis** di sebelah kanan:
 
 | Kolom | Isi |
 | --- | --- |
-| KODE | Kode lisensi yang diketik pembeli. Jika kodenya ada di kolom lain (misalnya LISENSI), isi Script Property `KOLOM_KODE` dengan judul kolom itu |
-| STATUS | Diisi `Dipakai` setelah kode dipakai mendaftar |
-| NAMA, EMAIL | Diisi otomatis saat pembeli mendaftar |
-| LISENSI, SOLD | Tidak diubah oleh script |
+| A. KODE LISENSI | Kode lisensi yang diketik pembeli (diisi admin) |
+| B. STATUS | Diisi `TERPAKAI` setelah kode dipakai mendaftar |
+| C. NAMA, D. EMAIL | Diisi otomatis saat pembeli mendaftar |
+| SOLD | Tidak diubah oleh script |
 | NO HP, UID | Kolom baru, diisi otomatis |
 | STATUS AKUN | Kolom baru: `Menunggu`, `Disetujui`, atau `Ditolak` |
 | TANGGAL DAFTAR, TANGGAL DIPUTUSKAN | Kolom baru, diisi otomatis |
 
-Catatan untuk **pembeli lama**: jika kolom **Email** pada baris kode sudah terisi (dari sistem lama) dan **UID** masih kosong, pembeli itu bisa mendaftar memakai kode yang sama, **asalkan emailnya sama**. Data keuangan lama mereka ikut dipindahkan otomatis.
+Catatan untuk **pembeli lama**: jika kodenya sudah `TERPAKAI` dengan **EMAIL** terisi (dari sistem lama) dan **UID** masih kosong, pembeli itu bisa mendaftar memakai kode yang sama, **asalkan emailnya sama**. Data keuangan lama mereka ikut dipindahkan otomatis.
 
 Kode baru sebaiknya acak dan panjang (minimal 8 karakter), supaya tidak bisa ditebak.
 
@@ -82,7 +82,7 @@ Kode baru sebaiknya acak dan panjang (minimal 8 karakter), supaya tidak bisa dit
 
 ## 7. Upload aplikasi baru
 
-Merge pull request ini ke `main`. Jika aplikasi di-hosting dari GitHub Pages, aplikasi baru otomatis aktif dalam beberapa menit.
+Merge pull request ini ke `main`. Jika project Vercel tersambung ke repo GitHub ini, Vercel otomatis men-deploy versi baru dalam 1 sampai 2 menit. Jika file di Vercel di-upload manual, upload ulang seluruh isi repo (termasuk folder `css/`, `js/`, dan `Logo.png`).
 
 ## 8. Uji coba
 

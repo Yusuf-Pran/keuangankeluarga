@@ -12,23 +12,23 @@
  *   TELEGRAM_BOT_TOKEN       token dari @BotFather (RAHASIA, jangan dibagikan)
  *   TELEGRAM_CHAT_ID         chat id Telegram admin (penerima notifikasi)
  *   SHEET_ID                 (opsional) ID Google Sheet, jika script tidak menempel di Sheet
- *   SHEET_NAME               (opsional) nama tab, default "Lisensi"
- *   KOLOM_KODE               (opsional) judul kolom berisi kode lisensi, default "KODE"
+ *   SHEET_NAME               (opsional) nama tab; default tab pertama (sama seperti script lama)
  */
 
-// Judul kolom di baris 1 (huruf besar/kecil tidak berpengaruh).
-// KODE, STATUS, NAMA, EMAIL sudah ada di sheet; sisanya ditambahkan otomatis.
-var HEADERS = {
-  kode: 'KODE',
-  status: 'STATUS',
-  nama: 'NAMA',
-  email: 'EMAIL',
-  phone: 'No HP',
+// Kolom A-D mengikuti script lama: A = kode lisensi, B = status (TERPAKAI),
+// C = nama, D = email. Kolom lain (mis. SOLD) tidak disentuh.
+var FIXED_COLUMNS = { kode: 1, status: 2, nama: 3, email: 4 };
+
+// Kolom baru dicari berdasarkan judul di baris 1, dan dibuat otomatis jika belum ada.
+var NEW_HEADERS = {
+  phone: 'NO HP',
   uid: 'UID',
-  akun: 'Status Akun',
-  daftar: 'Tanggal Daftar',
-  diputuskan: 'Tanggal Diputuskan',
+  akun: 'STATUS AKUN',
+  daftar: 'TANGGAL DAFTAR',
+  diputuskan: 'TANGGAL DIPUTUSKAN',
 };
+
+var STATUS_TERPAKAI = 'TERPAKAI';
 
 // ===================== ENTRY POINT =====================
 
@@ -110,7 +110,7 @@ function register_(body) {
 
     var now = new Date();
     row.set({
-      status: 'Dipakai',
+      status: STATUS_TERPAKAI,
       nama: nama,
       email: email,
       phone: "'" + phone,
@@ -313,23 +313,24 @@ function toFields_(obj) {
 function sheet_() {
   var id = prop_('SHEET_ID');
   var ss = id ? SpreadsheetApp.openById(id) : SpreadsheetApp.getActiveSpreadsheet();
-  var sh = ss.getSheetByName(prop_('SHEET_NAME') || 'Lisensi');
-  if (!sh) throw new Error('Tab sheet "Lisensi" tidak ditemukan.');
+  var name = prop_('SHEET_NAME');
+  var sh = name ? ss.getSheetByName(name) : ss.getSheets()[0];
+  if (!sh) throw new Error('Tab sheet "' + name + '" tidak ditemukan.');
   return sh;
 }
 
-/** Peta nama kolom -> nomor kolom; kolom yang belum ada ditambahkan di kanan. */
+/** Peta kolom -> nomor kolom; kolom baru yang belum ada ditambahkan di kanan. */
 function columns_(sh) {
   var lastCol = Math.max(sh.getLastColumn(), 1);
   var header = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(function (h) { return String(h).trim().toUpperCase(); });
   var map = {};
-  Object.keys(HEADERS).forEach(function (key) {
-    var title = key === 'kode' && prop_('KOLOM_KODE') ? prop_('KOLOM_KODE') : HEADERS[key];
-    var idx = header.indexOf(String(title).toUpperCase());
+  Object.keys(FIXED_COLUMNS).forEach(function (key) { map[key] = FIXED_COLUMNS[key]; });
+  Object.keys(NEW_HEADERS).forEach(function (key) {
+    var idx = header.indexOf(NEW_HEADERS[key]);
     if (idx === -1) {
-      header.push(String(title).toUpperCase());
+      header.push(NEW_HEADERS[key]);
       idx = header.length - 1;
-      sh.getRange(1, idx + 1).setValue(HEADERS[key]);
+      sh.getRange(1, idx + 1).setValue(NEW_HEADERS[key]);
     }
     map[key] = idx + 1;
   });
