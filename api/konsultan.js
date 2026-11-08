@@ -78,13 +78,20 @@ module.exports = async (req, res) => {
   });
 
   let last = { status: 0, message: "" };
-  for (const model of models) {
+  const started = Date.now();
+  for (let i = 0; i < models.length && i < 5; i++) {
+    const model = models[i];
+    const left = 50000 - (Date.now() - started);
+    if (left < 5000) break;
+    const t0 = Date.now();
     try {
       const g = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": key },
         body: payload,
+        signal: AbortSignal.timeout(Math.min(40000, left)),
       });
+      console.log("Gemini", model, g.status, `${Date.now() - t0}ms`);
       const data = await g.json().catch(() => ({}));
       if (g.ok) {
         const answer = (data.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("").trim();
@@ -94,14 +101,23 @@ module.exports = async (req, res) => {
       last = { status: g.status, message: String(data.error?.message || "").slice(0, 300) };
       console.error("Gemini error", model, g.status, JSON.stringify(data).slice(0, 500));
       if (g.status !== 404) break; // model ada tapi ditolak: tidak perlu coba model lain
+      // Google sering menyarankan model pengganti: "... use models/xxx ..."
+      const suggested = (last.message.match(/models\/([\w.-]+)/g) || [])
+        .map((x) => x.replace("models/", ""))
+        .filter((x) => x !== model && !models.includes(x));
+      models.splice(i + 1, 0, ...suggested);
     } catch (e) {
-      console.error(e);
-      last = { status: 0, message: String(e.message || e).slice(0, 300) };
+      const timeout = e.name === "TimeoutError" || e.name === "AbortError";
+      console.error("Gemini", model, timeout ? "timeout" : e, `${Date.now() - t0}ms`);
+      last = { status: timeout ? 504 : 0, message: timeout ? `Model ${model} terlalu lama menjawab` : String(e.message || e).slice(0, 300) };
+      if (timeout) break;
     }
   }
 
   const hint =
-    last.status === 429
+    last.status === 504
+      ? "Gemini terlalu lama menjawab. Coba lagi sebentar lagi."
+      : last.status === 429
       ? "Kuota gratis Gemini sedang habis. Coba lagi nanti."
       : last.status === 400 && /api key/i.test(last.message)
         ? "API key Gemini tidak valid. Periksa GEMINI_API_KEY di Vercel."

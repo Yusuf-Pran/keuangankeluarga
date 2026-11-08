@@ -117,6 +117,7 @@ async function askKonsultan(preset) {
     const token = window.sgAuth && (await window.sgAuth.getIdToken());
     const r = await fetch("/api/konsultan", {
       method: "POST",
+      signal: AbortSignal.timeout ? AbortSignal.timeout(70000) : undefined,
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token || ""}` },
       body: JSON.stringify({ question, history: konsultanState.history, summary: buildFinanceSummary() }),
     });
@@ -126,7 +127,8 @@ async function askKonsultan(preset) {
     konsultanState.history.push({ role: "user", text: question }, { role: "model", text: data.answer });
     konsultanState.history = konsultanState.history.slice(-10);
   } catch (e) {
-    waiting.innerHTML = `<span class="text-rose-600 dark:text-rose-400"><i class="fas fa-exclamation-circle mr-1"></i>${escapeHtml(e.message || "Terjadi kesalahan.")}</span>`;
+    const msg = e.name === "TimeoutError" || e.name === "AbortError" ? "Konsultan tidak menjawab dalam 70 detik. Coba lagi sebentar lagi." : e.message || "Terjadi kesalahan.";
+    waiting.innerHTML = `<span class="text-rose-600 dark:text-rose-400"><i class="fas fa-exclamation-circle mr-1"></i>${escapeHtml(msg)}</span>`;
   } finally {
     konsultanState.busy = false;
     document.getElementById("konsultan-send").disabled = false;
