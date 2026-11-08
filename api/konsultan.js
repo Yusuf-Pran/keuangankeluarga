@@ -67,28 +67,48 @@ module.exports = async (req, res) => {
     },
   ];
 
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-  try {
-    const g = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: RULES }] },
-        contents,
-        generationConfig: { temperature: 0.6, maxOutputTokens: 1024 },
-      }),
-    });
-    const data = await g.json().catch(() => ({}));
-    if (!g.ok) {
-      console.error("Gemini error", g.status, JSON.stringify(data).slice(0, 500));
-      const msg = g.status === 429 ? "Kuota gratis Gemini sedang habis. Coba lagi nanti." : "Konsultan AI sedang bermasalah. Coba lagi nanti.";
-      return res.status(502).json({ error: msg });
+  // Coba model dari GEMINI_MODEL dulu, lalu model cadangan bila model tidak ditemukan
+  const models = [process.env.GEMINI_MODEL, "gemini-flash-latest", "gemini-2.5-flash", "gemini-2.0-flash"]
+    .filter(Boolean)
+    .filter((m, i, a) => a.indexOf(m) === i);
+  const payload = JSON.stringify({
+    systemInstruction: { parts: [{ text: RULES }] },
+    contents,
+    generationConfig: { temperature: 0.6, maxOutputTokens: 2048 },
+  });
+
+  let last = { status: 0, message: "" };
+  for (const model of models) {
+    try {
+      const g = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+        body: payload,
+      });
+      const data = await g.json().catch(() => ({}));
+      if (g.ok) {
+        const answer = (data.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("").trim();
+        if (!answer) return res.status(502).json({ error: "Konsultan AI tidak memberi jawaban. Coba ulangi pertanyaan." });
+        return res.status(200).json({ answer, model });
+      }
+      last = { status: g.status, message: String(data.error?.message || "").slice(0, 300) };
+      console.error("Gemini error", model, g.status, JSON.stringify(data).slice(0, 500));
+      if (g.status !== 404) break; // model ada tapi ditolak: tidak perlu coba model lain
+    } catch (e) {
+      console.error(e);
+      last = { status: 0, message: String(e.message || e).slice(0, 300) };
     }
-    const answer = (data.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("").trim();
-    if (!answer) return res.status(502).json({ error: "Konsultan AI tidak memberi jawaban. Coba ulangi pertanyaan." });
-    return res.status(200).json({ answer });
-  } catch (e) {
-    console.error(e);
-    return res.status(502).json({ error: "Gagal menghubungi Konsultan AI." });
   }
+
+  const hint =
+    last.status === 429
+      ? "Kuota gratis Gemini sedang habis. Coba lagi nanti."
+      : last.status === 400 && /api key/i.test(last.message)
+        ? "API key Gemini tidak valid. Periksa GEMINI_API_KEY di Vercel."
+        : last.status === 403
+          ? "API key Gemini ditolak (izin/wilayah). Buat ulang key di aistudio.google.com."
+          : last.status === 404
+            ? "Model Gemini tidak ditemukan. Isi GEMINI_MODEL di Vercel dengan model yang tersedia."
+            : "Konsultan AI sedang bermasalah. Coba lagi nanti.";
+  return res.status(502).json({ error: `${hint} (kode ${last.status || "jaringan"}${last.message ? ": " + last.message : ""})` });
 };
