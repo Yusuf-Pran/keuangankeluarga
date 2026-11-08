@@ -758,10 +758,8 @@ function fillPdfTemplate(ym) {
 
   // Ringkasan
   const totals = monthTotals(ym);
-  let balance = 0;
-  window.appData.transactions.forEach((t) => {
-    balance += t.jenis === "Pemasukan" ? t.nominal : -t.nominal;
-  });
+  // Sisa per bulan (tidak terbawa dari bulan sebelumnya), sama dengan dashboard
+  const balance = totals.income - totals.expense;
   document.getElementById("pdf-total-in").innerText = formatRupiah(totals.income);
   document.getElementById("pdf-total-out").innerText = formatRupiah(totals.expense);
   document.getElementById("pdf-balance").innerText = formatRupiah(balance);
