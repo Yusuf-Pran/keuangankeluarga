@@ -504,6 +504,7 @@ function importCSV(file) {
 
 // ---------- Penghubung ----------
 window.renderExtraFeatures = function () {
+  syncResetMonth();
   renderRecurringList();
   renderGoals();
   renderNotifSetting();
@@ -522,3 +523,42 @@ window.runAutoTasks = function () {
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") closeGoalModal();
 });
+
+// ===== Reset data: hapus transaksi sekaligus =====
+function syncResetMonth() {
+  const el = document.getElementById("reset-month");
+  if (el && !el.value) el.value = todayISO().slice(0, 7);
+}
+
+function resetMonthTransactions() {
+  syncResetMonth();
+  const ym = document.getElementById("reset-month").value;
+  if (!ym) return;
+  const label = new Date(ym + "-01T00:00:00").toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+  const count = window.appData.transactions.filter((t) => String(t.tanggal).startsWith(ym)).length;
+  if (!count) return showToast(`Tidak ada transaksi di ${label}.`);
+  Modal.confirm(
+    `Hapus ${count} transaksi di ${label}? Data yang dihapus tidak bisa dikembalikan.`,
+    () => {
+      window.appData.transactions = window.appData.transactions.filter((t) => !String(t.tanggal).startsWith(ym));
+      saveData();
+      showToast(`${count} transaksi ${label} dihapus.`);
+    },
+    true,
+  );
+}
+
+function resetAllTransactions() {
+  const count = window.appData.transactions.length;
+  if (!count) return showToast("Belum ada transaksi.");
+  Modal.prompt(
+    `Hapus SEMUA ${count} transaksi? Data yang dihapus tidak bisa dikembalikan. Ketik HAPUS untuk melanjutkan.`,
+    "Ketik HAPUS",
+    (val) => {
+      if (String(val).toUpperCase() !== "HAPUS") return showToast("Dibatalkan. Ketik HAPUS untuk menghapus semua.");
+      window.appData.transactions = [];
+      saveData();
+      showToast("Semua transaksi dihapus.");
+    },
+  );
+}

@@ -27,7 +27,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
 
     <!-- Tailwind CSS (hasil build: npm run build:css) -->
-    <link rel="stylesheet" href="css/tailwind.css?v=12" />
+    <link rel="stylesheet" href="css/tailwind.css?v=13" />
 
     <!-- Libraries: Chart.js, FontAwesome, html2pdf -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
@@ -43,7 +43,7 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
     />
-    <link rel="stylesheet" href="css/style.css?v=12" />
+    <link rel="stylesheet" href="css/style.css?v=13" />
 
     <!-- Script inisialisasi tema awal -->
     <script>
@@ -931,6 +931,23 @@
               </p>
             </div>
 
+            <!-- RESET DATA -->
+            <div class="motion-slide-up delay-200 bg-white dark:bg-gray-800 rounded-2xl border border-rose-100 dark:border-rose-900/40 shadow-sm p-6 mb-6">
+              <h2 class="text-lg font-bold text-gray-800 dark:text-white mb-1">Reset Data</h2>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Hapus transaksi sekaligus untuk mulai lagi dari awal. Kategori, budget, transaksi rutin, dan target tabungan tetap disimpan. Sebaiknya ekspor CSV dulu sebagai cadangan.
+              </p>
+              <div class="flex flex-col sm:flex-row gap-3">
+                <input type="month" id="reset-month" aria-label="Bulan yang akan dihapus" class="form-input-sync sm:w-52 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm dark:text-white focus:ring-2 focus:ring-primary focus:outline-none" />
+                <button onclick="resetMonthTransactions()" class="btn-press flex-1 bg-rose-50 hover:bg-rose-100 dark:bg-rose-900/20 dark:hover:bg-rose-900/40 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-sm font-bold py-3 px-4 rounded-xl">
+                  <i class="fas fa-eraser mr-2"></i>Hapus transaksi bulan terpilih
+                </button>
+              </div>
+              <button onclick="resetAllTransactions()" class="btn-press w-full mt-3 bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold py-3 px-4 rounded-xl">
+                <i class="fas fa-trash-alt mr-2"></i>Hapus semua transaksi
+              </button>
+            </div>
+
             <!-- TOMBOL KELUAR & KUNCI APLIKASI -->
             <div
               class="md:hidden motion-slide-up delay-200 bg-gray-50 dark:bg-gray-700/30 rounded-2xl border border-gray-200 dark:border-gray-600 shadow-sm p-6 text-center mt-6"
@@ -1156,12 +1173,12 @@
     </div>
 
     <!-- KODE LOGIKA UTAMA (LOKAL) -->
-    <script src="js/app.js?v=12"></script>
-    <script src="js/voice.js?v=12"></script>
-    <script src="js/receipt.js?v=12"></script>
-    <script src="js/features.js?v=12"></script>
+    <script src="js/app.js?v=13"></script>
+    <script src="js/voice.js?v=13"></script>
+    <script src="js/receipt.js?v=13"></script>
+    <script src="js/features.js?v=13"></script>
 
     <!-- KODE MODULE FIREBASE SINKRONISASI -->
-    <script type="module" src="js/firebase-sync.js?v=12"></script>
+    <script type="module" src="js/firebase-sync.js?v=13"></script>
   </body>
 </html>
