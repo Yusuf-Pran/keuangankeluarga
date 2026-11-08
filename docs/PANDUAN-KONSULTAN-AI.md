@@ -19,7 +19,7 @@ bukan di kode aplikasi, jadi tidak bisa dilihat atau dicuri pengguna lain.
 5. Buka tab **Deployments**, klik titik tiga pada deployment teratas → **Redeploy**
    (variabel baru hanya terbaca setelah deploy ulang).
 
-Opsional: `GEMINI_MODEL` untuk mengganti model (bawaan `gemini-2.5-flash`).
+Opsional: `GEMINI_MODEL` untuk memilih model. Tanpa itu, server mencoba `gemini-flash-latest`, lalu `gemini-2.5-flash`, lalu `gemini-2.0-flash`.
 Isi dengan nama model lain dari https://ai.google.dev/gemini-api/docs/models bila model bawaan sudah tidak tersedia.
 
 ## 3. Coba
