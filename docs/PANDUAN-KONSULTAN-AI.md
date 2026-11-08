@@ -19,7 +19,7 @@ bukan di kode aplikasi, jadi tidak bisa dilihat atau dicuri pengguna lain.
 5. Buka tab **Deployments**, klik titik tiga pada deployment teratas → **Redeploy**
    (variabel baru hanya terbaca setelah deploy ulang).
 
-Opsional: `GEMINI_MODEL` untuk memilih model. Tanpa itu, server mencoba `gemini-flash-latest`, lalu `gemini-2.5-flash`, lalu `gemini-2.0-flash`.
+Opsional: `GEMINI_MODEL` untuk memilih model. Tanpa itu, server mencoba `gemini-flash-lite-latest`, `gemini-flash-latest`, `gemini-2.5-flash` (dan model pengganti yang disarankan Google), lalu `gemini-2.0-flash`. Model yang penuh (503), kehabisan kuota (429), atau tidak menjawab dalam 20 detik dilewati.
 Isi dengan nama model lain dari https://ai.google.dev/gemini-api/docs/models bila model bawaan sudah tidak tersedia.
 
 ## 3. Coba

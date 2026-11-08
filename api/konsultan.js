@@ -68,7 +68,7 @@ module.exports = async (req, res) => {
   ];
 
   // Coba model dari GEMINI_MODEL dulu, lalu model cadangan bila model tidak ditemukan
-  const models = [process.env.GEMINI_MODEL, "gemini-flash-latest", "gemini-2.5-flash", "gemini-2.0-flash"]
+  const models = [process.env.GEMINI_MODEL, "gemini-flash-lite-latest", "gemini-flash-latest", "gemini-2.5-flash", "gemini-2.0-flash"]
     .filter(Boolean)
     .filter((m, i, a) => a.indexOf(m) === i);
   const payload = JSON.stringify({
@@ -79,7 +79,7 @@ module.exports = async (req, res) => {
 
   let last = { status: 0, message: "" };
   const started = Date.now();
-  for (let i = 0; i < models.length && i < 5; i++) {
+  for (let i = 0; i < models.length && i < 6; i++) {
     const model = models[i];
     const left = 50000 - (Date.now() - started);
     if (left < 5000) break;
@@ -89,7 +89,7 @@ module.exports = async (req, res) => {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": key },
         body: payload,
-        signal: AbortSignal.timeout(Math.min(40000, left)),
+        signal: AbortSignal.timeout(Math.min(20000, left)),
       });
       console.log("Gemini", model, g.status, `${Date.now() - t0}ms`);
       const data = await g.json().catch(() => ({}));
@@ -100,7 +100,9 @@ module.exports = async (req, res) => {
       }
       last = { status: g.status, message: String(data.error?.message || "").slice(0, 300) };
       console.error("Gemini error", model, g.status, JSON.stringify(data).slice(0, 500));
-      if (g.status !== 404) break; // model ada tapi ditolak: tidak perlu coba model lain
+      // 404 = model tidak tersedia, 429/500/503 = model penuh/bermasalah: coba model berikutnya.
+      // Selain itu (mis. 400/403 key salah) model lain juga akan gagal, jadi berhenti.
+      if (![404, 429, 500, 503].includes(g.status)) break;
       // Google sering menyarankan model pengganti: "... use models/xxx ..."
       const suggested = (last.message.match(/models\/([\w.-]+)/g) || [])
         .map((x) => x.replace("models/", ""))
@@ -110,7 +112,6 @@ module.exports = async (req, res) => {
       const timeout = e.name === "TimeoutError" || e.name === "AbortError";
       console.error("Gemini", model, timeout ? "timeout" : e, `${Date.now() - t0}ms`);
       last = { status: timeout ? 504 : 0, message: timeout ? `Model ${model} terlalu lama menjawab` : String(e.message || e).slice(0, 300) };
-      if (timeout) break;
     }
   }
 
