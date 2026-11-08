@@ -191,7 +191,7 @@ function toggleTheme() {
     icon.className = "fas fa-sun";
     iconLogin.className = "fas fa-sun";
   }
-  if (pieChartInstance) updateDashboard();
+  if (pieChartInstance || trendChartInstance) updateDashboard();
 }
 
 // ================= AKUN & LOGIN =================
@@ -729,71 +729,118 @@ async function downloadPDF() {
   }
 }
 
+let typeFilter = "Semua";
+
+function setTypeFilter(type) {
+  typeFilter = type;
+  updateTransactionList();
+}
+
+function openNewTransaction() {
+  resetForm();
+  document.getElementById("input-date").valueAsDate = new Date();
+  switchView("input");
+}
+
 function updateTransactionList() {
   const container = document.getElementById("transaction-list");
   const noData = document.getElementById("no-transaction");
+  const summary = document.getElementById("transaction-summary");
   container.innerHTML = "";
 
-  const txsBulanIni = window.appData.transactions.filter((t) =>
-    t.tanggal.startsWith(window.selectedMonth),
+  document.querySelectorAll(".type-chip").forEach((el) => {
+    el.classList.toggle("active", el.dataset.type === typeFilter);
+  });
+
+  const query = (document.getElementById("search-transaction")?.value || "").trim().toLowerCase();
+  const txsBulanIni = window.appData.transactions.filter((t) => t.tanggal.startsWith(window.selectedMonth));
+  const shown = txsBulanIni.filter(
+    (t) =>
+      (typeFilter === "Semua" || t.jenis === typeFilter) &&
+      (!query || `${t.nama} ${t.kategori}`.toLowerCase().includes(query)),
   );
 
-  if (txsBulanIni.length === 0) noData.classList.remove("hidden");
-  else {
-    noData.classList.add("hidden");
-    const sorted = [...txsBulanIni].sort(
-      (a, b) => new Date(b.tanggal) - new Date(a.tanggal),
-    );
-    let lastDate = "";
+  // Ringkasan hasil yang tampil
+  let inc = 0,
+    exp = 0;
+  shown.forEach((t) => (t.jenis === "Pemasukan" ? (inc += t.nominal) : (exp += t.nominal)));
+  summary.innerHTML = shown.length
+    ? `<div class="rounded-xl bg-emerald-50 dark:bg-emerald-900/20 px-4 py-3">
+         <p class="text-[11px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Masuk</p>
+         <p class="num font-bold text-emerald-700 dark:text-emerald-300">${formatRupiah(inc)}</p>
+       </div>
+       <div class="rounded-xl bg-rose-50 dark:bg-rose-900/20 px-4 py-3">
+         <p class="text-[11px] font-semibold uppercase tracking-wider text-rose-700 dark:text-rose-400">Keluar</p>
+         <p class="num font-bold text-rose-700 dark:text-rose-300">${formatRupiah(exp)}</p>
+       </div>`
+    : "";
 
-    sorted.forEach((t, index) => {
-      if (t.tanggal !== lastDate) {
-        const dh = document.createElement("div");
-        dh.className =
-          "text-xs font-bold text-gray-500 dark:text-gray-400 mt-5 mb-2 border-b border-gray-100 dark:border-gray-700 pb-1";
-        dh.innerText = new Date(t.tanggal).toLocaleDateString("id-ID", {
-          weekday: "long",
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        });
-        container.appendChild(dh);
-        lastDate = t.tanggal;
-      }
+  if (shown.length === 0) {
+    noData.classList.remove("hidden");
+    noData.querySelector("p.font-medium").innerText = txsBulanIni.length
+      ? "Tidak ada yang cocok"
+      : "Kelihatan kosong di sini...";
+    noData.querySelector("p.text-sm").innerText = txsBulanIni.length
+      ? "Coba kata kunci atau filter lain."
+      : "Belum ada transaksi di bulan ini.";
+    return;
+  }
+  noData.classList.add("hidden");
 
+  const sorted = [...shown].sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+  const byDate = {};
+  sorted.forEach((t) => (byDate[t.tanggal] = byDate[t.tanggal] || []).push(t));
+
+  let index = 0;
+  Object.keys(byDate).forEach((tanggal) => {
+    const items = byDate[tanggal];
+    const dayNet = items.reduce((sum, t) => sum + (t.jenis === "Pemasukan" ? t.nominal : -t.nominal), 0);
+    const dh = document.createElement("div");
+    dh.className =
+      "flex justify-between items-center text-xs font-semibold text-gray-500 dark:text-gray-400 mt-5 mb-2 pb-1 border-b border-gray-100 dark:border-gray-700";
+    dh.innerHTML = `<span>${new Date(tanggal).toLocaleDateString("id-ID", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    })}</span><span class="num ${dayNet >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-gray-500"}">${
+      dayNet >= 0 ? "+" : "-"
+    } ${formatRupiah(Math.abs(dayNet))}</span>`;
+    container.appendChild(dh);
+
+    items.forEach((t) => {
       const isIncome = t.jenis === "Pemasukan";
-      const color = isIncome
-        ? "text-green-600 dark:text-green-400"
-        : "text-gray-800 dark:text-white";
+      const color = isIncome ? "text-emerald-600 dark:text-emerald-400" : "text-gray-800 dark:text-white";
       const bgIcon = isIncome
-        ? "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
-        : "bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400";
+        ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
+        : "bg-rose-100 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400";
       const icon = isIncome ? "fa-arrow-down" : "fa-arrow-up";
       const sign = isIncome ? "+" : "-";
-      const delay = index < 5 ? `animation-delay: ${index * 100}ms;` : "";
+      const delay = index < 8 ? `animation-delay: ${index * 60}ms;` : "";
+      index++;
 
       const card = document.createElement("div");
       card.className =
-        "motion-slide-up card-hover bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl flex justify-between items-center group transition-colors hover:bg-gray-100 dark:hover:bg-gray-700/50";
+        "motion-slide-up bg-gray-50 dark:bg-gray-700/30 p-4 rounded-xl flex justify-between items-center group transition-colors hover:bg-gray-100 dark:hover:bg-gray-700/50";
       card.style = delay;
       card.innerHTML = `
-          <div class="flex items-center gap-4">
-              <div class="w-10 h-10 rounded-full flex items-center justify-center ${bgIcon}"><i class="fas ${icon}"></i></div>
-              <div>
-                  <p class="font-bold text-gray-900 dark:text-white text-sm">${escapeHtml(t.nama)}</p>
-                  <p class="text-xs text-gray-500 dark:text-gray-400">${escapeHtml(t.kategori)}</p>
+          <div class="flex items-center gap-4 min-w-0">
+              <div class="w-10 h-10 shrink-0 rounded-full flex items-center justify-center ${bgIcon}"><i class="fas ${icon}"></i></div>
+              <div class="min-w-0">
+                  <p class="font-semibold text-gray-900 dark:text-white text-sm truncate">${escapeHtml(t.nama)}</p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${escapeHtml(t.kategori)}</p>
               </div>
           </div>
-          <div class="flex items-center gap-4">
-              <p class="font-bold ${color} text-sm whitespace-nowrap">${sign} ${formatRupiah(t.nominal)}</p>
-              <div class="flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                  <button onclick="editTransaction('${safeId(t.id)}')" class="btn-press text-gray-400 hover:text-primary p-1"><i class="fas fa-edit"></i></button>
-                  <button onclick="deleteTransaction('${safeId(t.id)}')" class="btn-press text-gray-400 hover:text-red-500 p-1"><i class="fas fa-trash"></i></button>
+          <div class="flex items-center gap-3 shrink-0">
+              <p class="num font-bold ${color} text-sm whitespace-nowrap">${sign} ${formatRupiah(t.nominal)}</p>
+              <div class="flex gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                  <button onclick="editTransaction('${safeId(t.id)}')" class="btn-press text-gray-400 hover:text-primary p-1" title="Ubah"><i class="fas fa-edit"></i></button>
+                  <button onclick="deleteTransaction('${safeId(t.id)}')" class="btn-press text-gray-400 hover:text-red-500 p-1" title="Hapus"><i class="fas fa-trash"></i></button>
               </div>
           </div>`;
       container.appendChild(card);
     });
-  }
+  });
 }
 
 function updateCategoryList() {
@@ -901,38 +948,81 @@ function deleteCategory(id) {
   );
 }
 
+let trendChartInstance = null;
+
+// "2026-11" -> "2026-10"
+function shiftMonth(ym, delta) {
+  const [y, m] = ym.split("-").map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function monthTotals(ym) {
+  let income = 0,
+    expense = 0;
+  window.appData.transactions.forEach((t) => {
+    if (!t.tanggal || !t.tanggal.startsWith(ym)) return;
+    if (t.jenis === "Pemasukan") income += t.nominal;
+    else expense += t.nominal;
+  });
+  return { income, expense };
+}
+
+// Teks perbandingan dengan bulan lalu. goodWhenUp: naik = bagus (pemasukan)
+function renderDelta(el, now, before, goodWhenUp) {
+  if (!el) return;
+  if (!before) {
+    el.className = "text-xs mt-2 text-gray-400";
+    el.innerText = now ? "Belum ada data bulan lalu" : "";
+    return;
+  }
+  const pct = Math.round(((now - before) / before) * 100);
+  const up = pct >= 0;
+  const good = up === goodWhenUp;
+  el.className = `text-xs mt-2 font-semibold ${
+    pct === 0
+      ? "text-gray-400"
+      : good
+        ? "text-emerald-600 dark:text-emerald-400"
+        : "text-rose-600 dark:text-rose-400"
+  }`;
+  el.innerHTML = `<i class="fas ${up ? "fa-arrow-trend-up" : "fa-arrow-trend-down"} mr-1"></i>${
+    up ? "+" : ""
+  }${pct}% dari bulan lalu`;
+}
+
 function updateDashboard() {
-  let inTotalBulanIni = 0,
-    exTotalBulanIni = 0,
-    catDataBulanIni = {};
+  let catDataBulanIni = {};
   let totalSaldoAllTime = 0;
 
   window.appData.transactions.forEach((t) => {
     if (t.jenis === "Pemasukan") totalSaldoAllTime += t.nominal;
     else totalSaldoAllTime -= t.nominal;
-
-    if (t.tanggal.startsWith(window.selectedMonth)) {
-      if (t.jenis === "Pemasukan") inTotalBulanIni += t.nominal;
-      else {
-        exTotalBulanIni += t.nominal;
-        catDataBulanIni[t.kategori] =
-          (catDataBulanIni[t.kategori] || 0) + t.nominal;
-      }
+    if (t.jenis !== "Pemasukan" && t.tanggal.startsWith(window.selectedMonth)) {
+      catDataBulanIni[t.kategori] = (catDataBulanIni[t.kategori] || 0) + t.nominal;
     }
   });
 
-  document.getElementById("dash-income").innerText =
-    formatRupiah(inTotalBulanIni);
-  document.getElementById("dash-expense").innerText =
-    formatRupiah(exTotalBulanIni);
-  document.getElementById("dash-balance").innerText =
-    formatRupiah(totalSaldoAllTime);
+  const now = monthTotals(window.selectedMonth);
+  const prev = monthTotals(shiftMonth(window.selectedMonth, -1));
+
+  document.getElementById("dash-income").innerText = formatRupiah(now.income);
+  document.getElementById("dash-expense").innerText = formatRupiah(now.expense);
+  document.getElementById("dash-balance").innerText = formatRupiah(totalSaldoAllTime);
+  renderDelta(document.getElementById("dash-income-delta"), now.income, prev.income, true);
+  renderDelta(document.getElementById("dash-expense-delta"), now.expense, prev.expense, false);
+  const net = now.income - now.expense;
+  document.getElementById("dash-net-month").innerText =
+    `Selisih bulan ini: ${net >= 0 ? "+" : "−"}${formatRupiah(Math.abs(net))}`;
 
   renderBudgetTable(catDataBulanIni);
+  renderTrendChart();
+
   const ctx = document.getElementById("expenseChart");
   const noData = document.getElementById("no-chart-data");
 
   if (pieChartInstance) pieChartInstance.destroy();
+  pieChartInstance = null;
   if (Object.keys(catDataBulanIni).length === 0) {
     noData.classList.remove("hidden");
     ctx.style.display = "none";
@@ -942,38 +1032,89 @@ function updateDashboard() {
   ctx.style.display = "block";
 
   const isDark = document.documentElement.classList.contains("dark");
+  const entries = Object.entries(catDataBulanIni).sort((a, b) => b[1] - a[1]);
   pieChartInstance = new Chart(ctx, {
     type: "doughnut",
     data: {
-      labels: Object.keys(catDataBulanIni),
+      labels: entries.map((e) => e[0]),
       datasets: [
         {
-          data: Object.values(catDataBulanIni),
-          backgroundColor: [
-            "#4f46e5",
-            "#10b981",
-            "#f59e0b",
-            "#ef4444",
-            "#06b6d4",
-            "#8b5cf6",
-          ],
+          data: entries.map((e) => e[1]),
+          backgroundColor: ["#4f46e5", "#10b981", "#f59e0b", "#ef4444", "#06b6d4", "#8b5cf6", "#ec4899", "#84cc16"],
           borderWidth: 0,
-          hoverOffset: 4,
+          hoverOffset: 6,
         },
       ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      cutout: "70%",
+      cutout: "72%",
       plugins: {
         legend: {
           position: "right",
           labels: {
             color: isDark ? "#cbd5e1" : "#475569",
-            boxWidth: 12,
-            padding: 15,
+            boxWidth: 10,
+            usePointStyle: true,
+            padding: 14,
             font: { family: "'Inter', sans-serif", size: 12 },
+          },
+        },
+        tooltip: {
+          callbacks: {
+            label: (c) => {
+              const total = c.dataset.data.reduce((x, y) => x + y, 0);
+              return ` ${c.label}: ${formatRupiah(c.parsed)} (${Math.round((c.parsed / total) * 100)}%)`;
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
+function renderTrendChart() {
+  const ctx = document.getElementById("trendChart");
+  if (!ctx || typeof Chart === "undefined") return;
+  const months = [];
+  for (let i = 5; i >= 0; i--) months.push(shiftMonth(window.selectedMonth, -i));
+  const totals = months.map(monthTotals);
+  const labels = months.map((ym) => {
+    const [y, m] = ym.split("-").map(Number);
+    return new Date(y, m - 1, 1).toLocaleDateString("id-ID", { month: "short" });
+  });
+  const isDark = document.documentElement.classList.contains("dark");
+  const grid = isDark ? "rgba(148,163,184,0.12)" : "rgba(15,23,42,0.06)";
+  const tick = isDark ? "#94a3b8" : "#64748b";
+
+  if (trendChartInstance) trendChartInstance.destroy();
+  trendChartInstance = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        { label: "Pemasukan", data: totals.map((t) => t.income), backgroundColor: "#10b981", borderRadius: 6, maxBarThickness: 28 },
+        { label: "Pengeluaran", data: totals.map((t) => t.expense), backgroundColor: "#f43f5e", borderRadius: 6, maxBarThickness: 28 },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (c) => ` ${c.dataset.label}: ${formatRupiah(c.parsed.y)}` } },
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: tick, font: { family: "'Inter', sans-serif" } } },
+        y: {
+          beginAtZero: true,
+          grid: { color: grid },
+          border: { display: false },
+          ticks: {
+            color: tick,
+            font: { family: "'Inter', sans-serif" },
+            callback: (v) => (v >= 1e6 ? `${v / 1e6} jt` : v >= 1e3 ? `${v / 1e3} rb` : v),
           },
         },
       },
@@ -982,39 +1123,61 @@ function updateDashboard() {
 }
 
 function renderBudgetTable(catDataBulanIni) {
-  const tbody = document.getElementById("budget-table-body");
+  const list = document.getElementById("budget-list");
   const noData = document.getElementById("no-budget-data");
-  tbody.innerHTML = "";
+  list.innerHTML = "";
 
-  const expCats = window.appData.categories.filter(
-    (c) => c.jenis === "Pengeluaran",
-  );
+  const expCats = window.appData.categories.filter((c) => c.jenis === "Pengeluaran");
   if (expCats.length === 0) {
     noData.classList.remove("hidden");
-    tbody.parentElement.parentElement.classList.add("hidden");
     return;
   }
   noData.classList.add("hidden");
-  tbody.parentElement.parentElement.classList.remove("hidden");
 
-  expCats.forEach((c) => {
-    const terpakai = catDataBulanIni[c.nama] || 0;
-    const sisa = c.budget - terpakai;
-    let sisaClass = "text-gray-900 dark:text-gray-200";
-    if (c.budget > 0) {
-      if (sisa < 0)
-        sisaClass = "text-red-600 dark:text-red-400 font-bold";
-      else if (sisa < c.budget * 0.2)
-        sisaClass = "text-yellow-600 dark:text-yellow-400 font-bold";
-      else sisaClass = "text-green-600 dark:text-green-400 font-bold";
-    } else sisaClass = "text-gray-400 dark:text-gray-500 italic";
+  // Urutkan: yang paling mendekati/lewat budget di atas
+  const rows = expCats
+    .map((c) => {
+      const terpakai = catDataBulanIni[c.nama] || 0;
+      const pct = c.budget > 0 ? (terpakai / c.budget) * 100 : null;
+      return { c, terpakai, pct };
+    })
+    .sort((a, b) => (b.pct ?? -1) - (a.pct ?? -1));
 
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-        <td class="px-4 py-4 font-medium text-gray-900 dark:text-white">${escapeHtml(c.nama)}</td>
-        <td class="px-4 py-4 text-right">${c.budget > 0 ? formatRupiah(c.budget) : "-"}</td>
-        <td class="px-4 py-4 text-right">${formatRupiah(terpakai)}</td>
-        <td class="px-4 py-4 text-right ${sisaClass}">${c.budget > 0 ? formatRupiah(sisa) : "-"}</td>`;
-    tbody.appendChild(tr);
+  rows.forEach(({ c, terpakai, pct }) => {
+    let bar = "bg-emerald-500",
+      note = "";
+    if (pct === null) {
+      bar = "bg-gray-300 dark:bg-gray-600";
+      note = `<span class="text-gray-400 italic">Tanpa budget</span>`;
+    } else if (pct > 100) {
+      bar = "bg-rose-500";
+      note = `<span class="text-rose-600 dark:text-rose-400 font-semibold">Lewat ${formatRupiah(terpakai - c.budget)}</span>`;
+    } else {
+      if (pct >= 75) bar = "bg-amber-500";
+      note = `<span class="text-gray-500 dark:text-gray-400">Sisa ${formatRupiah(c.budget - terpakai)}</span>`;
+    }
+    const width = pct === null ? (terpakai > 0 ? 100 : 0) : Math.min(pct, 100);
+
+    const row = document.createElement("div");
+    row.innerHTML = `
+      <div class="flex justify-between items-baseline gap-3 mb-1.5">
+        <p class="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">${escapeHtml(c.nama)}</p>
+        <p class="text-xs num whitespace-nowrap text-gray-500 dark:text-gray-400">
+          <span class="font-semibold text-gray-800 dark:text-gray-100">${formatRupiah(terpakai)}</span>${
+            c.budget > 0 ? ` / ${formatRupiah(c.budget)}` : ""
+          }
+        </p>
+      </div>
+      <div class="h-2 rounded-full bg-gray-100 dark:bg-gray-700 overflow-hidden">
+        <div class="budget-bar h-full rounded-full ${bar}" style="width:0%"></div>
+      </div>
+      <div class="flex justify-between text-xs mt-1 num">
+        ${note}
+        <span class="text-gray-400">${pct === null ? "" : Math.round(pct) + "%"}</span>
+      </div>`;
+    list.appendChild(row);
+    requestAnimationFrame(() => {
+      row.querySelector(".budget-bar").style.width = width + "%";
+    });
   });
 }
