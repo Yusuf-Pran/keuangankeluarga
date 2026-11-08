@@ -84,6 +84,10 @@ async function resolveEmail(id) {
 
 // ---------- Fungsi yang dipakai js/app.js ----------
 window.sgAuth = {
+  async getIdToken() {
+    return auth.currentUser ? auth.currentUser.getIdToken() : null;
+  },
+
   async checkLicense(code) {
     return callLicenseApi({ action: "checkLicense", kode: code });
   },

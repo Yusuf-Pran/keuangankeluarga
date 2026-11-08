@@ -27,7 +27,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
 
     <!-- Tailwind CSS (hasil build: npm run build:css) -->
-    <link rel="stylesheet" href="css/tailwind.css?v=13" />
+    <link rel="stylesheet" href="css/tailwind.css?v=14" />
 
     <!-- Libraries: Chart.js, FontAwesome, html2pdf -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
@@ -43,7 +43,7 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
     />
-    <link rel="stylesheet" href="css/style.css?v=13" />
+    <link rel="stylesheet" href="css/style.css?v=14" />
 
     <!-- Script inisialisasi tema awal -->
     <script>
@@ -140,7 +140,7 @@
               id="pdf-preview-month"
               onchange="renderPdfPreview(this.value)"
               aria-label="Bulan laporan"
-              class="flex-1 sm:flex-none min-w-0 h-10 px-3 bg-gray-900 border border-gray-600 rounded-lg text-sm font-bold text-indigo-300 [color-scheme:dark] focus:ring-2 focus:ring-primary focus:outline-none"
+              class="flex-1 sm:flex-none min-w-0 h-10 px-3 bg-gray-900 border border-gray-600 rounded-lg text-sm font-bold text-indigo-300 pdf-month-input focus:ring-2 focus:ring-primary focus:outline-none"
             />
             <button
               id="pdf-download-btn"
@@ -338,6 +338,13 @@
             data-target="data"
           >
             <i class="fas fa-list-alt w-5"></i> Riwayat Transaksi
+          </button>
+          <button
+            onclick="switchView('konsultan')"
+            class="btn-press nav-btn w-full flex items-center gap-3 px-3 py-3 text-sm font-medium rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
+            data-target="konsultan"
+          >
+            <i class="fas fa-user-tie w-5"></i> Konsultan AI
           </button>
           <p
             class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-4 mt-6 px-3"
@@ -828,6 +835,42 @@
             </div>
           </div>
 
+          <!-- VIEW KONSULTAN AI -->
+          <div id="view-konsultan" class="view-section max-w-3xl mx-auto">
+            <div class="motion-slide-up bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm flex flex-col h-[calc(100dvh-13rem)] md:h-[calc(100vh-10rem)] min-h-[420px]">
+              <div class="flex items-center gap-3 p-4 border-b border-gray-100 dark:border-gray-700">
+                <div class="hero-card w-10 h-10 rounded-xl flex items-center justify-center text-white relative overflow-hidden flex-shrink-0">
+                  <i class="fas fa-user-tie"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="font-bold text-gray-900 dark:text-white leading-tight">Konsultan SakuGenius</p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Saran keuangan berdasarkan data Anda bulan ini</p>
+                </div>
+                <button onclick="resetKonsultan()" class="btn-press text-xs font-semibold text-gray-500 hover:text-primary dark:text-gray-400 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700" aria-label="Mulai percakapan baru">
+                  <i class="fas fa-rotate-right mr-1"></i>Baru
+                </button>
+              </div>
+              <div id="konsultan-messages" class="flex-1 overflow-y-auto p-4 space-y-3">
+                <div id="konsultan-empty" class="text-center py-6">
+                  <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">Tanyakan apa saja soal keuangan keluarga Anda. Contoh:</p>
+                  <div class="flex flex-wrap justify-center gap-2">
+                    <button class="voice-chip" onclick="askKonsultan(this.textContent)">Analisis pengeluaran saya bulan ini</button>
+                    <button class="voice-chip" onclick="askKonsultan(this.textContent)">Bagaimana cara menabung lebih banyak?</button>
+                    <button class="voice-chip" onclick="askKonsultan(this.textContent)">Apakah budget saya sudah realistis?</button>
+                    <button class="voice-chip" onclick="askKonsultan(this.textContent)">Berapa dana darurat yang ideal untuk saya?</button>
+                  </div>
+                </div>
+              </div>
+              <form onsubmit="event.preventDefault(); askKonsultan();" class="p-3 border-t border-gray-100 dark:border-gray-700 flex gap-2">
+                <input id="konsultan-input" type="text" maxlength="1000" autocomplete="off" placeholder="Tulis pertanyaan Anda…" aria-label="Pertanyaan untuk konsultan" class="flex-1 min-w-0 h-11 px-4 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm dark:text-white focus:ring-2 focus:ring-primary focus:outline-none" />
+                <button id="konsultan-send" type="submit" class="btn-press w-11 h-11 flex-shrink-0 rounded-xl bg-primary hover:bg-primaryDark text-white disabled:opacity-50" aria-label="Kirim">
+                  <i class="fas fa-paper-plane"></i>
+                </button>
+              </form>
+              <p class="text-[11px] text-gray-400 px-4 pb-3 -mt-1">Jawaban dibuat AI (Google Gemini) dan bisa keliru. Ini saran umum, bukan nasihat keuangan resmi.</p>
+            </div>
+          </div>
+
           <!-- VIEW SETTINGS -->
           <div id="view-settings" class="view-section max-w-3xl mx-auto">
             <div
@@ -1161,6 +1204,14 @@
             </button>
           </div>
           <button
+            onclick="switchView('konsultan')"
+            class="btn-press nav-btn-mobile flex-1 py-3 flex flex-col items-center gap-1 text-gray-400 hover:text-primary"
+            data-target="konsultan"
+          >
+            <i class="fas fa-user-tie text-xl"></i
+            ><span class="text-[10px] font-semibold">Konsultan</span>
+          </button>
+          <button
             onclick="switchView('settings')"
             class="btn-press nav-btn-mobile flex-1 py-3 flex flex-col items-center gap-1 text-gray-400 hover:text-primary"
             data-target="settings"
@@ -1173,12 +1224,13 @@
     </div>
 
     <!-- KODE LOGIKA UTAMA (LOKAL) -->
-    <script src="js/app.js?v=13"></script>
-    <script src="js/voice.js?v=13"></script>
-    <script src="js/receipt.js?v=13"></script>
-    <script src="js/features.js?v=13"></script>
+    <script src="js/app.js?v=14"></script>
+    <script src="js/voice.js?v=14"></script>
+    <script src="js/receipt.js?v=14"></script>
+    <script src="js/features.js?v=14"></script>
+    <script src="js/konsultan.js?v=14"></script>
 
     <!-- KODE MODULE FIREBASE SINKRONISASI -->
-    <script type="module" src="js/firebase-sync.js?v=13"></script>
+    <script type="module" src="js/firebase-sync.js?v=14"></script>
   </body>
 </html>
