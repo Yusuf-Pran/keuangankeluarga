@@ -1,0 +1,12 @@
+{
+  "name": "sakugenius",
+  "private": true,
+  "description": "SakuGenius - aplikasi pencatat keuangan keluarga",
+  "scripts": {
+    "build:css": "tailwindcss -i ./css/tailwind.input.css -o ./css/tailwind.css --minify",
+    "watch:css": "tailwindcss -i ./css/tailwind.input.css -o ./css/tailwind.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "3.4.18"
+  }
+}

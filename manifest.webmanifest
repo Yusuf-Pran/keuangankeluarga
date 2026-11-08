@@ -1,0 +1,14 @@
+{
+  "name": "SakuGenius",
+  "short_name": "SakuGenius",
+  "description": "Catat dan atur keuangan keluarga dengan mudah.",
+  "lang": "id",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f9fafb",
+  "theme_color": "#4f46e5",
+  "icons": [
+    { "src": "Logo.png", "sizes": "485x476", "type": "image/png", "purpose": "any" }
+  ]
+}

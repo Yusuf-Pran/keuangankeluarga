@@ -1,0 +1,37 @@
+rules_version = '2';
+
+// Aturan keamanan Firestore untuk SakuGenius.
+// Pasang lewat Firebase Console > Firestore Database > Rules, lalu klik Publish.
+//
+// Tahap ini (sementara):
+// - Hanya pengguna yang sudah login Firebase (anonim) yang boleh membaca/menulis.
+// - Hanya koleksi "sakugenius_sync" yang boleh dipakai; koleksi lain ditolak.
+// - Isi dokumen harus berbentuk data SakuGenius (transactions + categories)
+//   dan tidak boleh dihapus dari aplikasi.
+//
+// Catatan: ID dokumen masih berasal dari email, jadi orang yang tahu email
+// pengguna lain secara teori masih bisa mengakses datanya. Perbaikan penuhnya
+// butuh perubahan di Google Apps Script lisensi (lihat README, bagian Keamanan).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /sakugenius_sync/{emailId} {
+      allow read: if request.auth != null
+                  && emailId.matches('^[A-Za-z0-9_]{3,200}$');
+
+      allow create, update: if request.auth != null
+                            && emailId.matches('^[A-Za-z0-9_]{3,200}$')
+                            && request.resource.data.keys().hasOnly(['transactions', 'categories'])
+                            && request.resource.data.transactions is list
+                            && request.resource.data.categories is list
+                            && request.resource.data.categories.size() <= 200;
+
+      allow delete: if false;
+    }
+
+    // Tolak semua akses ke koleksi lain.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
