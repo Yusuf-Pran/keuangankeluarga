@@ -548,6 +548,7 @@ function switchView(viewName) {
     .querySelectorAll(".view-section")
     .forEach((el) => el.classList.remove("active"));
   document.getElementById("view-" + viewName).classList.add("active");
+  if (viewName === "konsultan" && typeof loadKonsultanQuota === "function") loadKonsultanQuota();
 
   const titles = {
     dashboard: "Dashboard",

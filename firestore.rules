@@ -10,6 +10,9 @@ rules_version = '2';
 //                         Hanya ditulis oleh Google Apps Script.
 // - userData/{uid}      : data keuangan milik akun itu sendiri
 //                         (transaksi, kategori, transaksi rutin, target tabungan).
+// - konsultanUsage/{uid}: jumlah chat Konsultan AI bulan ini { bulan: 202611, jumlah: 3 }.
+//                         Ditulis oleh server /api/konsultan atas nama pengguna; hanya
+//                         boleh naik 1 per tulis, tidak bisa dikurangi atau dihapus.
 // - sakugenius_sync/... : data lama (versi kode lisensi), hanya bisa dibaca
 //                         pemiliknya untuk dipindahkan, tidak bisa ditulis lagi.
 service cloud.firestore {
@@ -45,6 +48,30 @@ service cloud.firestore {
                             && request.resource.data.categories.size() <= 200
                             && (!('recurring' in request.resource.data) || (request.resource.data.recurring is list && request.resource.data.recurring.size() <= 100))
                             && (!('goals' in request.resource.data) || (request.resource.data.goals is list && request.resource.data.goals.size() <= 50));
+
+      allow delete: if false;
+    }
+
+    match /konsultanUsage/{uid} {
+      function bulanIni() {
+        return request.time.year() * 100 + request.time.month();
+      }
+      function bentukValid() {
+        return request.resource.data.keys().hasOnly(['bulan', 'jumlah'])
+          && request.resource.data.bulan == bulanIni()
+          && request.resource.data.jumlah is int;
+      }
+
+      allow read: if signedIn() && request.auth.uid == uid;
+
+      allow create: if signedIn() && request.auth.uid == uid && isApproved()
+                    && bentukValid()
+                    && request.resource.data.jumlah == 1;
+
+      // Bulan yang sama: jumlah naik tepat 1. Bulan baru: mulai lagi dari 1.
+      allow update: if signedIn() && request.auth.uid == uid && isApproved()
+                    && bentukValid()
+                    && request.resource.data.jumlah == (resource.data.bulan == bulanIni() ? resource.data.jumlah + 1 : 1);
 
       allow delete: if false;
     }

@@ -101,8 +101,41 @@ function appendKonsultanBubble(role, html, extraClass = "") {
   return bubble;
 }
 
+// ---------- Jatah chat bulanan (dihitung di server) ----------
+function showKonsultanQuota(usage) {
+  if (!usage || !usage.limit) return;
+  konsultanState.usage = usage;
+  const left = Math.max(0, usage.limit - usage.used);
+  const el = document.getElementById("konsultan-quota");
+  if (el) {
+    el.textContent = `Sisa ${left}/${usage.limit} chat`;
+    el.classList.remove("hidden");
+    el.classList.toggle("text-rose-600", left === 0);
+  }
+  const input = document.getElementById("konsultan-input");
+  const send = document.getElementById("konsultan-send");
+  input.disabled = left === 0;
+  send.disabled = left === 0 || konsultanState.busy;
+  input.placeholder = left === 0 ? "Jatah chat bulan ini sudah habis" : "Tulis pertanyaan Anda…";
+  document.querySelectorAll("#konsultan-empty .voice-chip").forEach((b) => (b.disabled = left === 0));
+}
+
+async function loadKonsultanQuota() {
+  try {
+    const token = window.sgAuth && (await window.sgAuth.getIdToken());
+    if (!token) return;
+    const r = await fetch("/api/konsultan", { headers: { Authorization: `Bearer ${token}` } });
+    const data = await r.json().catch(() => ({}));
+    showKonsultanQuota(data.usage);
+  } catch (e) {
+    /* jatah tetap dicek di server saat bertanya */
+  }
+}
+
 async function askKonsultan(preset) {
   if (konsultanState.busy) return;
+  const u = konsultanState.usage;
+  if (u && u.used >= u.limit) return;
   const input = document.getElementById("konsultan-input");
   const question = String(preset || input.value || "").trim();
   if (!question) return input.focus();
@@ -122,6 +155,7 @@ async function askKonsultan(preset) {
       body: JSON.stringify({ question, history: konsultanState.history, summary: buildFinanceSummary() }),
     });
     const data = await r.json().catch(() => ({}));
+    if (data.usage) showKonsultanQuota(data.usage);
     if (!r.ok || !data.answer) throw new Error(data.error || "Konsultan AI belum bisa dihubungi.");
     waiting.innerHTML = renderAnswerHtml(data.answer);
     konsultanState.history.push({ role: "user", text: question }, { role: "model", text: data.answer });
@@ -131,7 +165,8 @@ async function askKonsultan(preset) {
     waiting.innerHTML = `<span class="text-rose-600 dark:text-rose-400"><i class="fas fa-exclamation-circle mr-1"></i>${escapeHtml(msg)}</span>`;
   } finally {
     konsultanState.busy = false;
-    document.getElementById("konsultan-send").disabled = false;
+    const u2 = konsultanState.usage;
+    document.getElementById("konsultan-send").disabled = !!(u2 && u2.used >= u2.limit);
     document.getElementById("konsultan-messages").scrollTop = 1e9;
   }
 }
