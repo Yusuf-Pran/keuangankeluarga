@@ -35,3 +35,15 @@ Masuk ke SakuGenius → menu **Konsultan AI** → tekan salah satu contoh pertan
 - Pada paket gratis, Google dapat memakai isi percakapan untuk meningkatkan layanannya.
   Lihat ketentuan di https://ai.google.dev/gemini-api/terms.
 - Aturan perilaku konsultan ada di `api/_konsultan-rules.js` dan bisa diubah sesuai kebutuhan.
+
+## Batas 5 chat per bulan
+
+Setiap akun mendapat jatah **5 chat Konsultan AI per bulan**. Jatah ini dihitung di server, jadi pengguna tidak bisa mengubahnya sendiri.
+
+- Yang dihitung hanya jawaban yang **berhasil**. Kalau Gemini sedang error, jatah tidak berkurang.
+- Sisa jatah tampil di pojok kanan atas halaman Konsultan, misalnya "Sisa 3/5 chat".
+- Jatah kembali penuh setiap awal bulan, mengikuti jam UTC (tanggal 1 pukul 07.00 WIB).
+- Hitungannya disimpan di Firestore `konsultanUsage/{uid}`.
+- Untuk mengubah jumlah jatahnya, isi Environment Variable `KONSULTAN_LIMIT` di Vercel (misalnya `10`), lalu Redeploy.
+
+**Wajib sekali:** salin isi `firestore.rules` terbaru ke Firebase Console → Firestore Database → Rules, lalu klik **Publish**. Kalau langkah ini belum dilakukan, Konsultan akan menampilkan pesan "aturan Firestore (konsultanUsage) belum diperbarui".

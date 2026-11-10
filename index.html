@@ -27,7 +27,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
 
     <!-- Tailwind CSS (hasil build: npm run build:css) -->
-    <link rel="stylesheet" href="css/tailwind.css?v=15" />
+    <link rel="stylesheet" href="css/tailwind.css?v=16" />
 
     <!-- Libraries: Chart.js, FontAwesome, html2pdf -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
@@ -43,7 +43,7 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
     />
-    <link rel="stylesheet" href="css/style.css?v=15" />
+    <link rel="stylesheet" href="css/style.css?v=16" />
 
     <!-- Script inisialisasi tema awal -->
     <script>
@@ -846,6 +846,7 @@
                   <p class="font-bold text-gray-900 dark:text-white leading-tight">Konsultan SakuGenius</p>
                   <p class="text-xs text-gray-500 dark:text-gray-400 truncate">Saran keuangan berdasarkan data Anda bulan ini</p>
                 </div>
+                <span id="konsultan-quota" class="hidden text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-900 px-3 py-2 rounded-lg whitespace-nowrap" title="Jatah chat Konsultan AI bulan ini"></span>
                 <button onclick="resetKonsultan()" class="btn-press text-xs font-semibold text-gray-500 hover:text-primary dark:text-gray-400 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700" aria-label="Mulai percakapan baru">
                   <i class="fas fa-rotate-right mr-1"></i>Baru
                 </button>
@@ -1224,13 +1225,13 @@
     </div>
 
     <!-- KODE LOGIKA UTAMA (LOKAL) -->
-    <script src="js/app.js?v=15"></script>
-    <script src="js/voice.js?v=15"></script>
-    <script src="js/receipt.js?v=15"></script>
-    <script src="js/features.js?v=15"></script>
-    <script src="js/konsultan.js?v=15"></script>
+    <script src="js/app.js?v=16"></script>
+    <script src="js/voice.js?v=16"></script>
+    <script src="js/receipt.js?v=16"></script>
+    <script src="js/features.js?v=16"></script>
+    <script src="js/konsultan.js?v=16"></script>
 
     <!-- KODE MODULE FIREBASE SINKRONISASI -->
-    <script type="module" src="js/firebase-sync.js?v=15"></script>
+    <script type="module" src="js/firebase-sync.js?v=16"></script>
   </body>
 </html>
