@@ -105,6 +105,7 @@ function appendKonsultanBubble(role, html, extraClass = "") {
 function showKonsultanQuota(usage) {
   if (!usage || !usage.limit) return;
   konsultanState.usage = usage;
+  document.getElementById("konsultan-quota-error")?.remove();
   const left = Math.max(0, usage.limit - usage.used);
   const el = document.getElementById("konsultan-quota");
   if (el) {
@@ -120,15 +121,35 @@ function showKonsultanQuota(usage) {
   document.querySelectorAll("#konsultan-empty .voice-chip").forEach((b) => (b.disabled = left === 0));
 }
 
+function showKonsultanQuotaError(msg) {
+  const el = document.getElementById("konsultan-quota");
+  if (!el) return;
+  el.textContent = "Jatah: gagal dimuat";
+  el.title = msg;
+  el.classList.remove("hidden");
+  el.classList.add("text-rose-600");
+  const empty = document.getElementById("konsultan-empty");
+  if (empty && !document.getElementById("konsultan-quota-error")) {
+    const p = document.createElement("p");
+    p.id = "konsultan-quota-error";
+    p.className = "text-xs text-rose-600 dark:text-rose-400 mb-4";
+    empty.prepend(p);
+  }
+  const p = document.getElementById("konsultan-quota-error");
+  if (p) p.textContent = msg;
+  console.warn("Konsultan:", msg);
+}
+
 async function loadKonsultanQuota() {
   try {
     const token = window.sgAuth && (await window.sgAuth.getIdToken());
     if (!token) return;
     const r = await fetch("/api/konsultan", { headers: { Authorization: `Bearer ${token}` } });
     const data = await r.json().catch(() => ({}));
-    showKonsultanQuota(data.usage);
+    if (data.usage) return showKonsultanQuota(data.usage);
+    showKonsultanQuotaError(data.error || `Jatah chat tidak bisa dimuat (kode ${r.status}).`);
   } catch (e) {
-    /* jatah tetap dicek di server saat bertanya */
+    showKonsultanQuotaError("Jatah chat tidak bisa dimuat. Periksa koneksi internet.");
   }
 }
 
